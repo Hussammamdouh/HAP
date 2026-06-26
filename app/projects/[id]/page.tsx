@@ -163,8 +163,8 @@ export default function ProjectDetailPage({ params }: ProjectPageProps) {
 
     // 4. Sorting
     result.sort((a, b) => {
-      let aVal = a[sortField];
-      let bVal = b[sortField];
+      const aVal = a[sortField];
+      const bVal = b[sortField];
 
       if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;

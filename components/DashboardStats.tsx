@@ -3,8 +3,7 @@ import {
   Percent, 
   AlertTriangle, 
   CheckCircle2, 
-  Clock, 
-  FolderGit2
+  Clock
 } from 'lucide-react';
 
 interface DashboardStatsProps {

@@ -28,7 +28,6 @@ interface ProjectDetailsModalProps {
 // Generate static milestones based on progress/project characteristics
 const getMilestones = (project: Project) => {
   const isDelayed = project.status === 'Delayed';
-  const isOnHold = project.status === 'Commercial on hold';
   
   return [
     {
@@ -73,7 +72,8 @@ export default function ProjectDetailsModal({ project, onClose }: ProjectDetails
       const timer = setTimeout(() => setIsOpen(true), 50);
       return () => clearTimeout(timer);
     } else {
-      setIsOpen(false);
+      const timer = setTimeout(() => setIsOpen(false), 0);
+      return () => clearTimeout(timer);
     }
   }, [project]);
 

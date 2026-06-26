@@ -2,26 +2,15 @@
 
 import React, { useState, useMemo } from 'react';
 import { 
-  Building2, 
   Database, 
-  Download, 
-  PlusCircle, 
   ArrowLeft, 
   Search, 
   CheckCircle2, 
-  AlertCircle, 
-  Clock, 
   Calendar, 
   Filter, 
   ListTodo, 
-  AlertTriangle, 
   Users, 
-  ShieldAlert, 
-  Moon, 
-  Sun,
-  Layers,
-  ChevronRight,
-  TrendingUp
+  ShieldAlert
 } from 'lucide-react';
 
 // ==========================================
@@ -718,7 +707,7 @@ export default function TechDarkDashboard() {
 
                         {/* Blocker Text */}
                         <p className="text-[11px] text-rose-400/90 italic bg-rose-950/20 p-2.5 rounded-lg border-l-2 border-rose-500">
-                          "{task.blocker || 'Delay variance logged in project timeline.'}"
+                          &quot;{task.blocker || 'Delay variance logged in project timeline.'}&quot;
                         </p>
 
                         {/* Owner Badge */}
