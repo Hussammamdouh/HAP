@@ -1,26 +1,98 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-lux-beige: #fcfaf7;
+  --color-lux-espresso: #25221f;
+  --color-lux-stone: #e0dcd7;
+  --color-lux-charcoal: #1a1714;
+  --color-lux-bone: #e8e6e3;
+  --color-lux-gold: #d4af37;
+  --color-lux-gold-dark: #b89228;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #080c14;
+  --foreground: #e8e6e3;
+  --card-bg: #111625;
+  --border-color: #1a2336;
+  --accent-primary: #d4af37; /* gold */
+  --accent-hover: #b89228;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #080c14;
+  --foreground: #e8e6e3;
+  --card-bg: #111625;
+  --border-color: #1a2336;
+  --accent-primary: #d4af37;
+  --accent-hover: #b89228;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  overflow-x: hidden;
+  
+  /* Technology Circuitry Radial Backgrounds */
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(24, 47, 92, 0.4) 0px, transparent 60%),
+    radial-gradient(at 100% 0%, rgba(51, 179, 212, 0.15) 0px, transparent 60%),
+    radial-gradient(at 50% 55%, rgba(212, 175, 55, 0.03) 0px, transparent 50%);
+}
+
+/* Subtle Technical Grid Overlay */
+.bg-tech-grid {
+  background-size: 50px 50px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+}
+
+/* Serif font style class */
+.font-serif-lux {
+  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+/* Progress Circle Gauges */
+.progress-ring-circle {
+  transition: stroke-dashoffset 0.35s;
+  transform: rotate(-90deg);
+  transform-origin: 50% 50%;
+}
+
+/* Custom Scrollbar for dashboard feel */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1a2336;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d4af37;
+}
+
+/* Pulse keyframes for alerts */
+@keyframes neon-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(212, 175, 55, 0.2), 0 0 10px rgba(212, 175, 55, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.4), 0 0 20px rgba(212, 175, 55, 0.2);
+  }
+}
+
+.glow-gold-hover:hover {
+  animation: neon-pulse 1.5s infinite;
 }
