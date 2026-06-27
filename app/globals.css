@@ -185,7 +185,7 @@ body {
 }
 
 .kpis.p {
-  grid-template-columns: auto repeat(4, 1fr);
+  grid-template-columns: auto repeat(5, minmax(0, 1fr));
 }
 
 .kpis.s {
@@ -272,7 +272,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 14px;
   padding: 1.2vh 1.5vw;
-  min-width: 13vw;
+  min-width: 0;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
@@ -390,7 +390,7 @@ thead th {
   text-transform: uppercase;
   color: var(--ink2);
   font-weight: 600;
-  text-align: left;
+  text-align: center;
   padding: 1.0vh 1.0vw;
   border-bottom: 1px solid var(--line2);
   white-space: nowrap;
@@ -411,6 +411,7 @@ tbody td {
   border-bottom: 1px solid var(--line);
   font-size: clamp(11px, 1.06vw, 16px);
   vertical-align: middle;
+  text-align: center;
 }
 
 tbody tr:last-child td {
@@ -543,6 +544,7 @@ td.days {
 .proj {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: .7vw;
   font-weight: 700;
   font-size: clamp(13px, 1.25vw, 19px);
@@ -606,7 +608,7 @@ td.days {
 }
 
 td.num {
-  text-align: right;
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 

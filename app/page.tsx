@@ -220,16 +220,19 @@ export default function ControlBoardDashboard() {
       const scopeTasks = tasks.filter(t => t.scope === scopeName);
       const total = scopeTasks.length;
       const completed = scopeTasks.filter(t => t.status === 'Complete').length;
-      const inProgress = scopeTasks.filter(t => t.status === 'In Progress').length;
-      const notStarted = scopeTasks.filter(t => t.status === 'Not Started').length;
+      const delayed = scopeTasks.filter(t => t.status !== 'Complete' && getDelayDays(t.bFinish, t.fFinish) > 0).length;
+      const inProgress = scopeTasks.filter(t => t.status === 'In Progress' && getDelayDays(t.bFinish, t.fFinish) <= 0).length;
+      const notStarted = scopeTasks.filter(t => t.status === 'Not Started' && getDelayDays(t.bFinish, t.fFinish) <= 0).length;
 
       return {
         name: scopeName,
         total,
         completed,
+        delayed,
         inProgress,
         notStarted,
         completedPercent: total > 0 ? (completed / total) * 100 : 0,
+        delayedPercent: total > 0 ? (delayed / total) * 100 : 0,
         inProgressPercent: total > 0 ? (inProgress / total) * 100 : 0,
         notStartedPercent: total > 0 ? (notStarted / total) * 100 : 0
       };
@@ -580,6 +583,24 @@ export default function ControlBoardDashboard() {
                   </div>
 
                   <div className="kpi alarm">
+                    <div className="lab">Delayed Tasks</div>
+                    <div className="val text-[#ff5a5f] font-serif-lux">{portfolioStats.delayed}</div>
+                    <div className="w-full h-5 mt-1 overflow-hidden opacity-50">
+                      <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="glow-red-delayed" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#ff5a5f" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="#ff5a5f" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,25 Q20,20 40,24 T80,10 T100,2" fill="none" stroke="#ff5a5f" strokeWidth="1.5" />
+                        <path d="M0,25 Q20,20 40,24 T80,10 T100,2 L100,30 L0,30 Z" fill="url(#glow-red-delayed)" />
+                      </svg>
+                    </div>
+                    <div className="foot mt-1">Tasks behind baseline timeline</div>
+                  </div>
+
+                  <div className="kpi alarm">
                     <div className="lab">Variance Delays</div>
                     <div className="val text-[#ff5a5f] font-serif-lux">+{portfolioStats.totalDelayDays}d</div>
                     <div className="w-full h-5 mt-1 overflow-hidden opacity-50">
@@ -594,7 +615,7 @@ export default function ControlBoardDashboard() {
                         <path d="M0,15 T30,17 T60,15 T80,8 T100,25 L100,30 L0,30 Z" fill="url(#glow-red)" />
                       </svg>
                     </div>
-                    <div className="foot mt-1">Across <b className="text-white">{portfolioStats.delayed}</b> delayed streams</div>
+                    <div className="foot mt-1">Total schedule delay variance</div>
                   </div>
                 </div>
 
@@ -611,11 +632,12 @@ export default function ControlBoardDashboard() {
                       <table>
                         <thead>
                           <tr>
-                            <th>Project Phase</th>
-                            <th>Scope Completion</th>
-                            <th style={{ textAlign: 'right' }}>Total Scope</th>
-                            <th style={{ textAlign: 'right' }}>Completed</th>
-                            <th style={{ textAlign: 'right' }}>Variance</th>
+                            <th style={{ textAlign: 'center' }}>Project Phase</th>
+                            <th style={{ textAlign: 'center' }}>Scope Completion</th>
+                            <th style={{ textAlign: 'center' }}>Total Scope</th>
+                            <th style={{ textAlign: 'center' }}>Completed</th>
+                            <th style={{ textAlign: 'center' }}>Delayed</th>
+                            <th style={{ textAlign: 'center' }}>Variance</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -628,7 +650,7 @@ export default function ControlBoardDashboard() {
                                 </div>
                               </td>
                               <td>
-                                <div className="flex items-center gap-3">
+                                <div className="flex items-center justify-center gap-3">
                                   <div className="bar flex-grow max-w-[150px]">
                                     <i style={{ width: `${phase.completionPercent}%` }}></i>
                                   </div>
@@ -637,7 +659,8 @@ export default function ControlBoardDashboard() {
                               </td>
                               <td className="num font-mono">{phase.total}</td>
                               <td className="num font-mono text-[#46c08a]">{phase.completed}</td>
-                              <td className="num var text-right font-mono">
+                              <td className="num font-mono text-[#ff5a5f]">{phase.delayed}</td>
+                              <td className="num var text-center font-mono">
                                 {phase.totalDelayDays > 0 ? (
                                   <span className="late text-[#ff5a5f] font-semibold">+{phase.totalDelayDays}d</span>
                                 ) : (
@@ -656,7 +679,7 @@ export default function ControlBoardDashboard() {
                               </div>
                             </td>
                             <td>
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center justify-center gap-3">
                                 <div className="bar flex-grow max-w-[150px]">
                                   <i style={{ width: `${portfolioStats.completionPercent}%` }}></i>
                                 </div>
@@ -665,7 +688,8 @@ export default function ControlBoardDashboard() {
                             </td>
                             <td className="num font-bold font-mono">{portfolioStats.total}</td>
                             <td className="num font-bold font-mono text-[#46c08a]">{portfolioStats.completed}</td>
-                            <td className="num var text-right font-mono font-bold">
+                            <td className="num font-bold font-mono text-[#ff5a5f]">{portfolioStats.delayed}</td>
+                            <td className="num var text-center font-mono font-bold">
                               {portfolioStats.totalDelayDays > 0 ? (
                                 <span className="late text-[#ff5a5f]">+{portfolioStats.totalDelayDays}d</span>
                               ) : (
@@ -688,7 +712,12 @@ export default function ControlBoardDashboard() {
                       {scopeBreakdown.map((scope, idx) => (
                         <div key={idx} className="space-y-1.5">
                           <div className="flex justify-between items-center text-[11px]">
-                            <span className="text-white font-semibold">{scope.name}</span>
+                            <span className="text-white font-semibold">
+                              {scope.name}
+                              {scope.delayed > 0 && (
+                                <span className="text-[#ff5a5f] ml-2 text-[10px] font-bold">({scope.delayed} delayed)</span>
+                              )}
+                            </span>
                             <span className="text-[#aebfd1] font-mono">{scope.completed} / {scope.total} <small className="text-[#7e95ab] font-sans">Done</small></span>
                           </div>
                           {/* Stacked bar */}
@@ -698,6 +727,15 @@ export default function ControlBoardDashboard() {
                                 style={{ width: `${scope.completedPercent}%` }} 
                                 className="h-full bg-gradient-to-r from-[#1f7a5e] to-[#34c6a6] transition-all duration-500 relative" 
                                 title={`Complete: ${scope.completed}`}
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 w-full h-full animate-[pulse_2s_infinite]" />
+                              </div>
+                            )}
+                            {scope.delayedPercent > 0 && (
+                              <div 
+                                style={{ width: `${scope.delayedPercent}%` }} 
+                                className="h-full bg-[#ff5a5f] transition-all duration-500 relative" 
+                                title={`Delayed: ${scope.delayed}`}
                               >
                                 <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 w-full h-full animate-[pulse_2s_infinite]" />
                               </div>
@@ -827,20 +865,25 @@ export default function ControlBoardDashboard() {
                         
                         <div className="space-y-3.5 flex-grow overflow-y-auto pr-1 scrollable-y">
                           {upcomingMilestones.map((t, idx) => (
-                            <div key={idx} className="bg-white/5 border border-white/5 hover:border-white/10 transition-colors rounded-xl p-3 flex items-center gap-3">
-                              <div className="w-7 h-7 rounded-lg bg-[#f1a73a]/10 border border-[#f1a73a]/25 flex items-center justify-center shrink-0">
-                                <Clock size={14} className="text-[#f1a73a]" />
+                            <div key={idx} className="bg-white/5 border border-white/5 hover:border-white/10 transition-colors rounded-xl p-3 flex items-start gap-3">
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#34c6a6] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[9px] shrink-0 mt-0.5">
+                                {t.owner ? t.owner.split('/').map(w => w.trim().charAt(0)).join('') : '—'}
                               </div>
                               <div className="min-w-0 flex-grow text-left">
-                                <span className="text-[9px] font-bold text-[#7e95ab] uppercase tracking-wider block">{t.scope}</span>
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-[9px] font-bold text-[#7e95ab] uppercase tracking-wider block">{t.scope}</span>
+                                  <span className="text-[9px] font-bold text-[#34c6a6] px-1.5 py-0.5 border border-[#34c6a6]/30 bg-[#34c6a6]/10 rounded-md shrink-0 leading-none">
+                                    Active
+                                  </span>
+                                </div>
                                 <span className="font-semibold text-white block text-[11px] truncate mt-0.5" title={t.stage}>{t.stage}</span>
                                 <span className="text-[10px] font-mono text-[#aebfd1] block mt-0.5 flex items-center gap-1">
                                   <Calendar size={11} className="text-[#34c6a6]" />
-                                  Due: {t.fFinish}
+                                  Due: {t.fFinish || '—'}
                                 </span>
-                              </div>
-                              <div className="text-[9px] font-bold text-[#f1a73a] px-2 py-0.5 border border-[#f1a73a]/20 bg-[#f1a73a]/5 rounded-md shrink-0">
-                                Active
+                                <span className="text-[9px] text-[#7e95ab] block mt-1">
+                                  Owner: <b className="text-[#aebfd1] font-semibold">{t.owner || '—'}</b> | Agent: <b className="text-[#aebfd1] font-semibold">{t.consultant || '—'}</b>
+                                </span>
                               </div>
                             </div>
                           ))}
@@ -879,6 +922,10 @@ export default function ControlBoardDashboard() {
                                     </span>
                                   </div>
                                   <span className="font-semibold text-white block text-[11px] truncate mt-0.5" title={t.stage}>{t.stage}</span>
+                                  <span className="text-[10px] font-mono text-[#aebfd1] block mt-0.5 flex items-center gap-1.5">
+                                    <Calendar size={11} className="text-[#ff5a5f]" />
+                                    Planned: <b className="text-white font-normal">{t.bFinish || '—'}</b> → Forecast: <b className="text-white font-normal">{t.fFinish || '—'}</b>
+                                  </span>
                                   <span className="text-[9px] text-[#7e95ab] block mt-1">
                                     Owner: <b className="text-[#aebfd1] font-semibold">{t.owner || '—'}</b> | Agent: <b className="text-[#aebfd1] font-semibold">{t.consultant || '—'}</b>
                                   </span>
@@ -1058,7 +1105,7 @@ export default function ControlBoardDashboard() {
                         <th>Baseline</th>
                         <th>Forecast</th>
                         <th>Status</th>
-                        <th style={{ textAlign: 'right' }}>Variance</th>
+                        <th style={{ textAlign: 'center' }}>Variance</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
