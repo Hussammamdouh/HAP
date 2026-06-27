@@ -17,7 +17,9 @@ import {
   ShieldAlert, 
   ListTodo,
   TrendingUp,
-  AlertTriangle
+  AlertTriangle,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import rawData from './projects-data.json';
 
@@ -72,6 +74,7 @@ export default function ControlBoardDashboard() {
   const [selectedScope, setSelectedScope] = useState('All');
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [interactiveViewMode, setInteractiveViewMode] = useState<'list' | 'board'>('list');
 
   // Initialize refresh time and clock loop
   useEffect(() => {
@@ -298,59 +301,32 @@ export default function ControlBoardDashboard() {
     return filteredTasks[0] || null;
   }, [selectedTaskId, filteredTasks]);
 
-  // Interactive Gantt Timeline Scope chart calculations (Scope tracks plotted chronologically)
-  const interactiveTimeline = useMemo(() => {
-    const scopeGroups: Record<string, TaskData[]> = {};
+  // Split filteredTasks into status groups for Kanban Board presentation view
+  const boardColumns = useMemo(() => {
+    const completeTasks: TaskData[] = [];
+    const activeTasks: TaskData[] = [];
+    const delayedTasks: TaskData[] = [];
+    const pendingTasks: TaskData[] = [];
+
     filteredTasks.forEach(t => {
-      if (!scopeGroups[t.scope]) {
-        scopeGroups[t.scope] = [];
+      const delay = getDelayDays(t.bFinish, t.fFinish);
+      if (t.status === 'Complete') {
+        completeTasks.push(t);
+      } else if (delay > 0) {
+        delayedTasks.push(t);
+      } else if (t.status === 'In Progress') {
+        activeTasks.push(t);
+      } else {
+        pendingTasks.push(t);
       }
-      scopeGroups[t.scope].push(t);
     });
-    
-    // Timeline window ranges from Jan 2024 to Jul 2027
-    const minTime = new Date("2024-01-01").getTime();
-    const maxTime = new Date("2027-07-01").getTime();
-    const totalRange = maxTime - minTime;
-    
-    return Object.keys(scopeGroups).map(scopeName => {
-      const groupTasks = scopeGroups[scopeName];
-      let startVal = Infinity;
-      let endVal = -Infinity;
-      
-      groupTasks.forEach(t => {
-        if (t.bFinish) {
-          const d = new Date(t.bFinish).getTime();
-          if (!isNaN(d) && d < startVal) startVal = d;
-        }
-        if (t.fFinish) {
-          const d = new Date(t.fFinish).getTime();
-          if (!isNaN(d) && d > endVal) endVal = d;
-        }
-      });
-      
-      if (startVal === Infinity) startVal = new Date("2025-01-01").getTime();
-      if (endVal === -Infinity) endVal = new Date("2026-12-31").getTime();
-      if (endVal < startVal) endVal = startVal + (30 * 24 * 60 * 60 * 1000);
-      
-      const leftPercent = Math.max(0, ((startVal - minTime) / totalRange) * 100);
-      const widthPercent = Math.max(5, ((endVal - startVal) / totalRange) * 100);
-      
-      const completed = groupTasks.filter(t => t.status === 'Complete').length;
-      const total = groupTasks.length;
-      const percent = total > 0 ? (completed / total) * 100 : 0;
-      
-      return {
-        name: scopeName,
-        leftPercent,
-        widthPercent,
-        percent,
-        completed,
-        total,
-        startStr: new Date(startVal).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-        endStr: new Date(endVal).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-      };
-    });
+
+    return [
+      { id: 'delayed', title: 'Delayed / Blocked', color: '#ff5a5f', border: 'rgba(255,90,95,0.25)', tasks: delayedTasks },
+      { id: 'active', title: 'Active / In Progress', color: '#f1a73a', border: 'rgba(241,167,58,0.25)', tasks: activeTasks },
+      { id: 'complete', title: 'Completed Milestones', color: '#46c08a', border: 'rgba(70,192,138,0.25)', tasks: completeTasks },
+      { id: 'pending', title: 'Not Started / Pending', color: '#7e95ab', border: 'rgba(255,255,255,0.1)', tasks: pendingTasks }
+    ];
   }, [filteredTasks]);
 
   // Status badges colors helper
@@ -954,7 +930,7 @@ export default function ControlBoardDashboard() {
 
         {/* VIEW 2: INTERACTIVE DASHBOARD VIEW (DRILL-DOWN & GANTT SEARCH) */}
         {activeTab === 'interactive' && (
-          <div className="absolute inset-0 flex flex-col p-6 space-y-6 scrollable-y">
+          <div className="absolute inset-0 flex flex-col p-6 space-y-4 overflow-hidden h-full">
             
             {/* SEARCH / FILTERS BAR */}
             <div className="flex-none p-4 rounded-xl bg-[#13293e]/40 border border-white/5 backdrop-blur-md flex flex-wrap items-center justify-between gap-4">
@@ -1017,284 +993,362 @@ export default function ControlBoardDashboard() {
                 </div>
               </div>
 
-              <div className="text-[11px] text-[#7e95ab]">
-                Filtered: <b className="text-white">{filteredTasks.length}</b> / {tasks.length} tasks
+              <div className="flex items-center gap-4">
+                <div className="text-[11px] text-[#7e95ab] hidden sm:block">
+                  Filtered: <b className="text-white">{filteredTasks.length}</b> / {tasks.length} tasks
+                </div>
+                
+                {/* View switcher */}
+                <div className="flex items-center bg-[#0b1d2e] border border-white/10 rounded-lg p-0.5">
+                  <button
+                    onClick={() => setInteractiveViewMode('list')}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-[10px] uppercase font-bold tracking-wider font-sans transition-all ${
+                      interactiveViewMode === 'list' 
+                        ? 'bg-[#34c6a6] text-[#0b1d2e] shadow-md' 
+                        : 'text-[#aebfd1] hover:text-white'
+                    }`}
+                    title="List Workspace View"
+                  >
+                    <List size={11} />
+                    List View
+                  </button>
+                  <button
+                    onClick={() => setInteractiveViewMode('board')}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-[10px] uppercase font-bold tracking-wider font-sans transition-all ${
+                      interactiveViewMode === 'board' 
+                        ? 'bg-[#34c6a6] text-[#0b1d2e] shadow-md' 
+                        : 'text-[#aebfd1] hover:text-white'
+                    }`}
+                    title="Board Presentation View"
+                  >
+                    <LayoutGrid size={11} />
+                    Board View
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* NEW GRAPH: VISUAL GANTT SCOPE TIMELINE (AGGREGATED RECORD SPARKLINE GRID) */}
-            {interactiveTimeline.length > 0 && (
-              <div className="glass-panel rounded-2xl p-5 flex-none shadow-lg relative overflow-hidden">
-                <div className="text-[11px] font-bold text-white uppercase tracking-wider mb-4 flex items-center justify-between border-b border-white/5 pb-2">
-                  <span>Visual Gantt Scope Timeline (2024 – 2027)</span>
-                  <span className="text-[9px] text-[#7e95ab] font-mono font-normal">Active milestones grouped by Scope</span>
-                </div>
-                
-                <div className="space-y-3 relative pt-6">
-                  {/* Timeline Time Marker Labels */}
-                  <div className="absolute top-0 left-[140px] right-0 flex justify-between text-[8px] font-mono text-[#7e95ab] pointer-events-none px-1">
-                    <span>Jan 2024</span>
-                    <span>Jan 2025</span>
-                    <span>Jan 2026</span>
-                    <span>Jul 2027</span>
-                  </div>
-
-                  {/* Vertical Year Grid Lines */}
-                  <div className="absolute top-6 bottom-0 left-[140px] right-0 pointer-events-none z-0">
-                    <div className="absolute left-[28.57%] top-0 bottom-0 w-px border-dashed border-l border-white/[0.08]" />
-                    <div className="absolute left-[57.14%] top-0 bottom-0 w-px border-dashed border-l border-white/[0.08]" />
-                    <div className="absolute left-[85.71%] top-0 bottom-0 w-px border-dashed border-l border-white/[0.08]" />
+            {/* MAIN WORKSPACE GRID */}
+            {interactiveViewMode === 'list' ? (
+              <div className="flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch overflow-hidden min-h-0 h-full">
+                {/* Task table list (Left Side) */}
+                <div className="lg:col-span-2 flex flex-col bg-[#13293e] border border-white/10 rounded-2xl shadow-xl overflow-hidden h-full min-h-0">
+                  <div className="p-4 border-b border-white/10 flex items-center justify-between flex-none">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                      <ListTodo size={14} className="text-[#34c6a6]" />
+                      Interactive Work Streams
+                    </h3>
+                    <span className="text-[10px] text-[#7e95ab]">Click a row to load visual detail card</span>
                   </div>
                   
-                  {interactiveTimeline.map((item, idx) => (
-                    <div key={idx} className="relative flex items-center h-6 group/bar">
-                      {/* Left: Label */}
-                      <div className="w-[130px] text-[10px] text-[#aebfd1] truncate pr-2 shrink-0 font-semibold uppercase tracking-wider">
-                        {item.name}
+                  <div className="tablewrap flex-grow overflow-y-auto min-h-0">
+                    <table className="text-xs">
+                      <thead className="text-[9px]">
+                        <tr>
+                          <th className="idx">#</th>
+                          <th>Stage / Milestone</th>
+                          <th>Scope</th>
+                          <th>Owner</th>
+                          <th>Consultant</th>
+                          <th>Baseline</th>
+                          <th>Forecast</th>
+                          <th>Status</th>
+                          <th style={{ textAlign: 'center' }}>Variance</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/5">
+                        {filteredTasks.map((t, idx) => {
+                          const delay = getDelayDays(t.bFinish, t.fFinish);
+                          const isDelayed = delay > 0 && t.status !== 'Complete';
+                          const taskKey = `${t.phase}-${t.scope}-${t.stage}`;
+                          const isSelected = selectedTask && `${selectedTask.phase}-${selectedTask.scope}-${selectedTask.stage}` === taskKey;
+                          
+                          return (
+                            <tr 
+                              key={idx} 
+                              onClick={() => setSelectedTaskId(taskKey)}
+                              className={`hover:bg-[#16314f]/50 transition-colors cursor-pointer ${isSelected ? 'bg-[#16314f]' : ''} ${isDelayed ? 'od' : ''}`}
+                            >
+                              <td className="idx">{idx + 1}</td>
+                              <td className="stage font-medium text-white max-w-[200px] truncate">
+                                {t.stage}
+                                <span className="ph block text-[9px] text-[#7e95ab] mt-0.5 truncate">{t.phase}</span>
+                              </td>
+                              <td className="scope">{t.scope}</td>
+                              <td className="owner">{t.owner || '—'}</td>
+                              <td className="cons">{t.consultant || '—'}</td>
+                              <td className="date font-mono text-[10px]">{t.bFinish || '—'}</td>
+                              <td className="date font-mono text-[10px]">{t.fFinish || '—'}</td>
+                              <td className="status">
+                                {renderStatusBadge(t.status, isDelayed)}
+                              </td>
+                              <td className="days">
+                                {delay > 0 ? (
+                                  <span className="pill r text-[8px] py-[2px]">+{delay}d</span>
+                                ) : (
+                                  <span className="pill g text-[8px] py-[2px]">On Time</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {filteredTasks.length === 0 && (
+                          <tr>
+                            <td colSpan={9} className="text-center py-20 text-[#7e95ab]">
+                              No matching milestones found. Adjust filters to search.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Task Detail Card (Right Side) */}
+                <div className="lg:col-span-1 flex flex-col h-full min-h-0">
+                  {selectedTask ? (
+                    <div className="flex-grow bg-[#13293e]/50 border border-white/10 rounded-2xl p-6 shadow-xl space-y-6 overflow-y-auto scrollable-y h-full min-h-0">
+                      <div>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-[#34c6a6] border border-[#34c6a6]/30 px-2 py-0.5 rounded-md bg-[#34c6a6]/5">
+                          {selectedTask.phase}
+                        </span>
+                        <h4 className="text-md font-bold text-white mt-3 font-serif-lux">{selectedTask.stage}</h4>
+                        <p className="text-[11px] text-[#7e95ab] mt-1 uppercase tracking-wider">{selectedTask.scope}</p>
                       </div>
-                      
-                      {/* Center: Progress bar track */}
-                      <div className="flex-1 h-3.5 bg-[#0b1d2e] rounded-full border border-white/5 relative overflow-hidden">
-                        {/* Floating visual scope block */}
-                        <div 
-                          style={{ left: `${item.leftPercent}%`, width: `${item.widthPercent}%` }}
-                          className="absolute h-full rounded-full bg-white/5 border border-white/10 group-hover/bar:border-white/20 transition-all flex overflow-hidden"
-                        >
-                          {/* Inner filled progress bar representing completion percentage */}
-                          <div 
-                            style={{ width: `${item.percent}%` }}
-                            className="h-full bg-gradient-to-r from-[#1f7a5e] to-[#34c6a6] relative"
-                          >
-                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 w-full h-full animate-[pulse_2s_infinite]" />
+
+                      <div className="h-px bg-white/10"></div>
+
+                      {/* Task details avatar grid */}
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="bg-white/5 border border-white/5 rounded-xl p-2.5 flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#34c6a6] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[10px] shrink-0">
+                            {selectedTask.owner ? selectedTask.owner.split('/').map(w => w.trim().charAt(0)).join('') : '—'}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[#7e95ab] text-[8px] uppercase tracking-wider block">Lead Owner</span>
+                            <span className="font-semibold text-white block truncate text-[11px]" title={selectedTask.owner || ''}>{selectedTask.owner || '—'}</span>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-white/5 border border-white/5 rounded-xl p-2.5 flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#f1a73a] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[10px] shrink-0">
+                            {selectedTask.consultant ? selectedTask.consultant.split(' ').map(w => w.trim().charAt(0)).join('') : '—'}
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[#7e95ab] text-[8px] uppercase tracking-wider block">Consultant</span>
+                            <span className="font-semibold text-white block truncate text-[11px]" title={selectedTask.consultant || ''}>{selectedTask.consultant || '—'}</span>
                           </div>
                         </div>
                       </div>
-                      
-                      {/* Right: Date duration tooltip on hover */}
-                      <div className="absolute right-3 text-[9px] text-[#7e95ab] opacity-0 group-hover/bar:opacity-100 transition-opacity font-mono">
-                        {item.startStr} – {item.endStr} | {Math.round(item.percent)}% Done ({item.completed}/{item.total})
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {/* SPLIT GRID WORKSPACE */}
-            <div className="flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6 items-start overflow-hidden">
-              
-              {/* Task table list (Left Side) */}
-              <div className="lg:col-span-2 flex flex-col bg-[#13293e] border border-white/10 rounded-2xl shadow-xl overflow-hidden h-[45vh]">
-                <div className="p-4 border-b border-white/10 flex items-center justify-between flex-none">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
-                    <ListTodo size={14} className="text-[#34c6a6]" />
-                    Interactive Work Streams
-                  </h3>
-                  <span className="text-[10px] text-[#7e95ab]">Click a row to load visual detail card</span>
-                </div>
-                
-                <div className="tablewrap flex-grow overflow-y-auto">
-                  <table className="text-xs">
-                    <thead className="text-[9px]">
-                      <tr>
-                        <th className="idx">#</th>
-                        <th>Stage / Milestone</th>
-                        <th>Scope</th>
-                        <th>Owner</th>
-                        <th>Consultant</th>
-                        <th>Baseline</th>
-                        <th>Forecast</th>
-                        <th>Status</th>
-                        <th style={{ textAlign: 'center' }}>Variance</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5">
-                      {filteredTasks.map((t, idx) => {
-                        const delay = getDelayDays(t.bFinish, t.fFinish);
-                        const isDelayed = delay > 0 && t.status !== 'Complete';
-                        const taskKey = `${t.phase}-${t.scope}-${t.stage}`;
-                        const isSelected = selectedTask && `${selectedTask.phase}-${selectedTask.scope}-${selectedTask.stage}` === taskKey;
-                        
-                        return (
-                          <tr 
-                            key={idx} 
-                            onClick={() => setSelectedTaskId(taskKey)}
-                            className={`hover:bg-[#16314f]/50 transition-colors cursor-pointer ${isSelected ? 'bg-[#16314f]' : ''} ${isDelayed ? 'od' : ''}`}
+                      <div className="h-px bg-white/10"></div>
+
+                      {/* Milestone Lifecycle Steps Flow Chart */}
+                      <div className="space-y-3">
+                        <span className="text-[#7e95ab] text-[9px] uppercase tracking-wider block">Milestone Schedule Flow</span>
+                        <div className="flex items-center justify-between text-center relative pt-2">
+                          {/* Connection Line */}
+                          <div className="absolute top-[17px] left-[10%] right-[10%] h-[2px] bg-white/10 z-0">
+                            <div 
+                              className="h-full bg-[#34c6a6] transition-all duration-300"
+                              style={{
+                                width: selectedTask.status === 'Complete' ? '100%' : selectedTask.status === 'In Progress' ? '50%' : '0%'
+                              }}
+                            />
+                          </div>
+                          
+                          {/* Node 1: Baseline Target */}
+                          <div className="flex flex-col items-center relative z-10 w-[30%]">
+                            <div className="w-[10px] h-[10px] rounded-full bg-[#34c6a6] shadow-[0_0_8px_#34c6a6] mb-1.5" />
+                            <span className="text-[9px] font-bold text-white block">Baseline Finish</span>
+                            <span className="text-[9px] font-mono text-[#aebfd1] block mt-0.5">{selectedTask.bFinish || '—'}</span>
+                          </div>
+
+                          {/* Node 2: Forecast Finish */}
+                          <div className="flex flex-col items-center relative z-10 w-[30%]">
+                            <div className={`w-[10px] h-[10px] rounded-full mb-1.5 ${
+                              selectedTask.status === 'Complete' || selectedTask.status === 'In Progress'
+                                ? 'bg-[#f1a73a] shadow-[0_0_8px_#f1a73a]'
+                                : 'bg-white/20'
+                            }`} />
+                            <span className="text-[9px] font-bold text-white block">Forecast Finish</span>
+                            <span className="text-[9px] font-mono text-[#aebfd1] block mt-0.5">{selectedTask.fFinish || '—'}</span>
+                          </div>
+
+                          {/* Node 3: Status Commissioning */}
+                          <div className="flex flex-col items-center relative z-10 w-[30%]">
+                            <div className={`w-[10px] h-[10px] rounded-full mb-1.5 ${
+                              selectedTask.status === 'Complete'
+                                ? 'bg-[#46c08a] shadow-[0_0_8px_#46c08a]'
+                                : 'bg-white/20'
+                            }`} />
+                            <span className="text-[9px] font-bold text-white block">Commissioning</span>
+                            <span className="text-[9px] text-[#7e95ab] block mt-0.5 uppercase tracking-wider">{selectedTask.status}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="h-px bg-white/10"></div>
+
+                      {/* Gantt visual progress chart */}
+                      <div>
+                        <span className="text-[#7e95ab] text-[9px] uppercase tracking-wider block mb-2">Visual Gantt Progress Bar</span>
+                        <div className="w-full bg-[#0b1d2e] h-4 rounded-full border border-white/10 overflow-hidden relative">
+                          {/* Fill color based on status */}
+                          <div 
+                            className={`h-full transition-all duration-500 flex items-center justify-end pr-2 ${
+                              selectedTask.status === 'Complete' ? 'bg-[#46c08a]' : 
+                              getDelayDays(selectedTask.bFinish, selectedTask.fFinish) > 0 ? 'bg-[#ff5a5f]' : 'bg-[#f1a73a]'
+                            }`}
+                            style={{ 
+                              width: `${selectedTask.status === 'Complete' ? 100 : selectedTask.status === 'In Progress' ? 50 : 10}%` 
+                            }}
                           >
-                            <td className="idx">{idx + 1}</td>
-                            <td className="stage font-medium text-white max-w-[200px] truncate">
-                              {t.stage}
-                              <span className="ph block text-[9px] text-[#7e95ab] mt-0.5 truncate">{t.phase}</span>
-                            </td>
-                            <td className="scope">{t.scope}</td>
-                            <td className="owner">{t.owner || '—'}</td>
-                            <td className="cons">{t.consultant || '—'}</td>
-                            <td className="date font-mono text-[10px]">{t.bFinish || '—'}</td>
-                            <td className="date font-mono text-[10px]">{t.fFinish || '—'}</td>
-                            <td className="status">
-                              {renderStatusBadge(t.status, isDelayed)}
-                            </td>
-                            <td className="days">
-                              {delay > 0 ? (
-                                <span className="pill r text-[8px] py-[2px]">+{delay}d</span>
-                              ) : (
-                                <span className="pill g text-[8px] py-[2px]">On Time</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                      {filteredTasks.length === 0 && (
-                        <tr>
-                          <td colSpan={9} className="text-center py-20 text-[#7e95ab]">
-                            No matching milestones found. Adjust filters to search.
-                          </td>
-                        </tr>
+                            <span className="text-[8px] font-bold text-white font-mono leading-none">
+                              {selectedTask.status === 'Complete' ? '100%' : selectedTask.status === 'In Progress' ? '50%' : '10%'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between items-center text-[9px] text-[#7e95ab] mt-1.5 font-mono">
+                          <span>Start: 2024</span>
+                          <span>Finish Forecast: {selectedTask.fFinish || '—'}</span>
+                        </div>
+                      </div>
+
+                      {/* Blocker alert warning block */}
+                      {getDelayDays(selectedTask.bFinish, selectedTask.fFinish) > 0 && selectedTask.status !== 'Complete' && (
+                        <div className="bg-[#ff5a5f]/10 border border-[#ff5a5f]/30 p-3.5 rounded-xl space-y-2">
+                          <div className="flex items-center gap-2 text-[#ff5a5f] text-[10px] font-bold uppercase tracking-wider">
+                            <AlertTriangle size={14} />
+                            Active delay logged
+                          </div>
+                          <p className="text-[11px] text-[#ff5a5f]/90 italic leading-relaxed">
+                            Task schedule exceeds baseline target by <b className="font-bold">{getDelayDays(selectedTask.bFinish, selectedTask.fFinish)} days</b>. Mitigation protocols recommended.
+                          </p>
+                        </div>
                       )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
 
-              {/* Task Detail Card (Right Side) */}
-              {selectedTask ? (
-                <div className="bg-[#13293e]/50 border border-white/10 rounded-2xl p-6 shadow-xl space-y-6 h-[45vh] overflow-y-auto scrollable-y">
-                  <div>
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#34c6a6] border border-[#34c6a6]/30 px-2 py-0.5 rounded-md bg-[#34c6a6]/5">
-                      {selectedTask.phase}
-                    </span>
-                    <h4 className="text-md font-bold text-white mt-3 font-serif-lux">{selectedTask.stage}</h4>
-                    <p className="text-[11px] text-[#7e95ab] mt-1 uppercase tracking-wider">{selectedTask.scope}</p>
-                  </div>
-
-                  <div className="h-px bg-white/10"></div>
-
-                  {/* Task details avatar grid */}
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="bg-white/5 border border-white/5 rounded-xl p-2.5 flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#34c6a6] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[10px] shrink-0">
-                        {selectedTask.owner ? selectedTask.owner.split('/').map(w => w.trim().charAt(0)).join('') : '—'}
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-[#7e95ab] text-[8px] uppercase tracking-wider block">Lead Owner</span>
-                        <span className="font-semibold text-white block truncate text-[11px]" title={selectedTask.owner || ''}>{selectedTask.owner || '—'}</span>
+                      <div className="bg-white/5 border border-white/5 p-3 rounded-lg flex items-center gap-3">
+                        <Database size={14} className="text-[#34c6a6]" />
+                        <span className="text-[10px] text-[#7e95ab] uppercase tracking-wider font-bold">Relational Bindings Active</span>
                       </div>
                     </div>
-                    
-                    <div className="bg-white/5 border border-white/5 rounded-xl p-2.5 flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#f1a73a] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[10px] shrink-0">
-                        {selectedTask.consultant ? selectedTask.consultant.split(' ').map(w => w.trim().charAt(0)).join('') : '—'}
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-[#7e95ab] text-[8px] uppercase tracking-wider block">Consultant</span>
-                        <span className="font-semibold text-white block truncate text-[11px]" title={selectedTask.consultant || ''}>{selectedTask.consultant || '—'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="h-px bg-white/10"></div>
-
-                  {/* Milestone Lifecycle Steps Flow Chart */}
-                  <div className="space-y-3">
-                    <span className="text-[#7e95ab] text-[9px] uppercase tracking-wider block">Milestone Schedule Flow</span>
-                    <div className="flex items-center justify-between text-center relative pt-2">
-                      {/* Connection Line */}
-                      <div className="absolute top-[17px] left-[10%] right-[10%] h-[2px] bg-white/10 z-0">
-                        <div 
-                          className="h-full bg-[#34c6a6] transition-all duration-300"
-                          style={{
-                            width: selectedTask.status === 'Complete' ? '100%' : selectedTask.status === 'In Progress' ? '50%' : '0%'
-                          }}
-                        />
-                      </div>
-                      
-                      {/* Node 1: Baseline Target */}
-                      <div className="flex flex-col items-center relative z-10 w-[30%]">
-                        <div className="w-[10px] h-[10px] rounded-full bg-[#34c6a6] shadow-[0_0_8px_#34c6a6] mb-1.5" />
-                        <span className="text-[9px] font-bold text-white block">Baseline Finish</span>
-                        <span className="text-[9px] font-mono text-[#aebfd1] block mt-0.5">{selectedTask.bFinish || '—'}</span>
-                      </div>
-
-                      {/* Node 2: Forecast Finish */}
-                      <div className="flex flex-col items-center relative z-10 w-[30%]">
-                        <div className={`w-[10px] h-[10px] rounded-full mb-1.5 ${
-                          selectedTask.status === 'Complete' || selectedTask.status === 'In Progress'
-                            ? 'bg-[#f1a73a] shadow-[0_0_8px_#f1a73a]'
-                            : 'bg-white/20'
-                        }`} />
-                        <span className="text-[9px] font-bold text-white block">Forecast Finish</span>
-                        <span className="text-[9px] font-mono text-[#aebfd1] block mt-0.5">{selectedTask.fFinish || '—'}</span>
-                      </div>
-
-                      {/* Node 3: Status Completion */}
-                      <div className="flex flex-col items-center relative z-10 w-[30%]">
-                        <div className={`w-[10px] h-[10px] rounded-full mb-1.5 ${
-                          selectedTask.status === 'Complete'
-                            ? 'bg-[#46c08a] shadow-[0_0_8px_#46c08a]'
-                            : 'bg-white/20'
-                        }`} />
-                        <span className="text-[9px] font-bold text-white block">Commissioning</span>
-                        <span className="text-[9px] text-[#7e95ab] block mt-0.5 uppercase tracking-wider">{selectedTask.status}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="h-px bg-white/10"></div>
-
-                  {/* Gantt visual progress chart */}
-                  <div>
-                    <span className="text-[#7e95ab] text-[9px] uppercase tracking-wider block mb-2">Visual Gantt Progress Bar</span>
-                    <div className="w-full bg-[#0b1d2e] h-4 rounded-full border border-white/10 overflow-hidden relative">
-                      {/* Fill color based on status */}
-                      <div 
-                        className={`h-full transition-all duration-500 flex items-center justify-end pr-2 ${
-                          selectedTask.status === 'Complete' ? 'bg-[#46c08a]' : 
-                          getDelayDays(selectedTask.bFinish, selectedTask.fFinish) > 0 ? 'bg-[#ff5a5f]' : 'bg-[#f1a73a]'
-                        }`}
-                        style={{ 
-                          width: `${selectedTask.status === 'Complete' ? 100 : selectedTask.status === 'In Progress' ? 50 : 10}%` 
-                        }}
-                      >
-                        <span className="text-[8px] font-bold text-white font-mono leading-none">
-                          {selectedTask.status === 'Complete' ? '100%' : selectedTask.status === 'In Progress' ? '50%' : '10%'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center text-[9px] text-[#7e95ab] mt-1.5 font-mono">
-                      <span>Start: 2024</span>
-                      <span>Finish Forecast: {selectedTask.fFinish || '—'}</span>
-                    </div>
-                  </div>
-
-                  {/* Blocker alert warning block */}
-                  {getDelayDays(selectedTask.bFinish, selectedTask.fFinish) > 0 && selectedTask.status !== 'Complete' && (
-                    <div className="bg-[#ff5a5f]/10 border border-[#ff5a5f]/30 p-3.5 rounded-xl space-y-2">
-                      <div className="flex items-center gap-2 text-[#ff5a5f] text-[10px] font-bold uppercase tracking-wider">
-                        <AlertTriangle size={14} />
-                        Active delay logged
-                      </div>
-                      <p className="text-[11px] text-[#ff5a5f]/90 italic leading-relaxed">
-                        Task schedule exceeds baseline target by <b className="font-bold">{getDelayDays(selectedTask.bFinish, selectedTask.fFinish)} days</b>. Mitigation protocols recommended.
-                      </p>
+                  ) : (
+                    <div className="flex-grow bg-[#13293e]/50 border border-white/10 rounded-2xl p-6 shadow-xl flex items-center justify-center text-[#7e95ab] h-full min-h-0 text-center text-xs">
+                      Select a milestone task row to view details.
                     </div>
                   )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex-grow grid grid-cols-1 md:grid-cols-4 gap-6 items-stretch overflow-hidden min-h-0 h-full">
+                {boardColumns.map((col, cIdx) => (
+                  <div 
+                    key={cIdx} 
+                    className="flex flex-col rounded-2xl border bg-[#13293e]/40 h-full min-h-0 overflow-hidden"
+                    style={{ borderColor: col.border }}
+                  >
+                    {/* Column Header */}
+                    <div 
+                      className="p-3.5 border-b flex items-center justify-between flex-none bg-[#13293e]/60"
+                      style={{ borderBottomColor: col.border }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span 
+                          className="w-2.5 h-2.5 rounded-full animate-pulse" 
+                          style={{ 
+                            backgroundColor: col.color, 
+                            boxShadow: `0 0 8px ${col.color}`
+                          }} 
+                        />
+                        <h4 className="text-[11px] font-bold uppercase tracking-wider text-white">
+                          {col.title}
+                        </h4>
+                      </div>
+                      <span 
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-md text-white font-mono"
+                        style={{ backgroundColor: `${col.color}20`, border: `1px solid ${col.border}` }}
+                      >
+                        {col.tasks.length}
+                      </span>
+                    </div>
 
-                  <div className="bg-white/5 border border-white/5 p-3 rounded-lg flex items-center gap-3">
-                    <Database size={14} className="text-[#34c6a6]" />
-                    <span className="text-[10px] text-[#7e95ab] uppercase tracking-wider font-bold">Relational Bindings Active</span>
+                    {/* Cards Container */}
+                    <div className="p-3.5 space-y-3 flex-grow overflow-y-auto scrollable-y min-h-0">
+                      {col.tasks.map((t, tIdx) => {
+                        const delay = getDelayDays(t.bFinish, t.fFinish);
+                        const isSelected = selectedTask && selectedTask.phase === t.phase && selectedTask.stage === t.stage && selectedTask.scope === t.scope;
+                        const taskKey = `${t.phase}-${t.scope}-${t.stage}`;
+
+                        return (
+                          <div 
+                            key={tIdx}
+                            onClick={() => {
+                              setSelectedTaskId(taskKey);
+                            }}
+                            className={`p-3.5 rounded-xl border bg-[#0b1d2e]/80 hover:bg-[#0e2438] transition-all cursor-pointer text-left space-y-2.5 ${
+                              isSelected ? 'border-[#34c6a6] shadow-[0_0_12px_rgba(52,198,166,0.15)] bg-[#16314f]/50' : 'border-white/5 hover:border-white/10'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex justify-between items-start gap-2">
+                                <span className="text-[8px] font-bold text-[#7e95ab] uppercase tracking-wider truncate">
+                                  {t.scope}
+                                </span>
+                                <span className="text-[8px] text-[#7e95ab] font-mono shrink-0">
+                                  {t.phase.split(' ')[0]} {t.phase.includes('(') ? t.phase.substring(t.phase.indexOf('(')) : ''}
+                                </span>
+                              </div>
+                              <h5 className="font-semibold text-white text-[11px] mt-1 leading-normal line-clamp-2" title={t.stage}>
+                                {t.stage}
+                              </h5>
+                            </div>
+
+                            {/* Avatars / Owner row */}
+                            <div className="flex items-center gap-2 text-[9px] text-[#7e95ab]">
+                              <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#34c6a6] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[7px] shrink-0">
+                                {t.owner ? t.owner.split('/').map(w => w.trim().charAt(0)).join('') : '—'}
+                              </div>
+                              <span className="truncate flex-grow">
+                                Owner: <b className="text-[#aebfd1] font-semibold">{t.owner || '—'}</b>
+                              </span>
+                            </div>
+
+                            {/* Timeline Date details */}
+                            <div className="flex flex-col gap-0.5 text-[9px] border-t border-white/5 pt-2">
+                              <div className="flex items-center justify-between text-[#7e95ab] font-mono">
+                                <span>Planned:</span>
+                                <span className="text-white">{t.bFinish || '—'}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-[#7e95ab] font-mono">
+                                <span>Forecast:</span>
+                                <span className={delay > 0 ? 'text-[#ff5a5f] font-semibold' : 'text-white'}>
+                                  {t.fFinish || '—'}
+                                </span>
+                              </div>
+                              {delay > 0 && (
+                                <div className="flex items-center justify-between text-[#ff5a5f] font-bold mt-1 font-mono">
+                                  <span>Variance:</span>
+                                  <span>+{delay}d delay</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {col.tasks.length === 0 && (
+                        <div className="h-full flex flex-col items-center justify-center text-center py-20 text-[#7e95ab]">
+                          <CheckCircle2 size={24} className="opacity-30 mb-2" />
+                          <span className="text-[10px]">No milestones in this stage.</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-
-                </div>
-              ) : (
-                <div className="bg-[#13293e]/50 border border-white/10 rounded-2xl p-6 shadow-xl flex items-center justify-center text-[#7e95ab] h-[45vh]">
-                  Select a milestone task row to view details.
-                </div>
-              )}
-
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
-
       </div>
 
       {/* ==========================================
