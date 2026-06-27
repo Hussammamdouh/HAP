@@ -76,6 +76,31 @@ export default function ControlBoardDashboard() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [interactiveViewMode, setInteractiveViewMode] = useState<'list' | 'board'>('list');
 
+  // Bidirectional synchronization between slideshow slideIndex and selectedPhase filter
+  useEffect(() => {
+    if (slideIndex === 0) {
+      setSelectedPhase('All');
+    } else {
+      const phaseName = PHASES[slideIndex - 1];
+      if (phaseName) {
+        setSelectedPhase(phaseName);
+      }
+    }
+  }, [slideIndex]);
+
+  const handlePhaseFilterChange = (phaseName: string) => {
+    setSelectedPhase(phaseName);
+    if (phaseName === 'All') {
+      setSlideIndex(0);
+    } else {
+      const idx = PHASES.indexOf(phaseName);
+      if (idx !== -1) {
+        setSlideIndex(idx + 1);
+      }
+    }
+    setProgress(0);
+  };
+
   // Initialize refresh time and clock loop
   useEffect(() => {
     const now = new Date();
@@ -138,7 +163,7 @@ export default function ControlBoardDashboard() {
 
   // Slideshow Auto-cycling Timer loop
   useEffect(() => {
-    if (!isPlaying || activeTab !== 'presentation') return;
+    if (!isPlaying) return;
 
     const step = (CYCLE_INTERVAL_MS / CYCLE_DURATION_MS) * 100;
     const interval = setInterval(() => {
@@ -152,7 +177,7 @@ export default function ControlBoardDashboard() {
     }, CYCLE_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [isPlaying, slideIndex, activeTab]);
+  }, [isPlaying, slideIndex]);
 
   // Unique scopes in the dataset
   const allScopes = useMemo(() => {
@@ -951,7 +976,7 @@ export default function ControlBoardDashboard() {
                   <Filter size={11} className="text-[#34c6a6]" />
                   <select 
                     value={selectedPhase}
-                    onChange={(e) => setSelectedPhase(e.target.value)}
+                    onChange={(e) => handlePhaseFilterChange(e.target.value)}
                     className="bg-transparent focus:outline-none cursor-pointer font-bold text-[#aebfd1] text-[10px]"
                   >
                     <option value="All" className="text-slate-800 bg-white">All Phases</option>
@@ -1361,7 +1386,6 @@ export default function ControlBoardDashboard() {
           <button 
             id="prev" 
             onClick={handlePrev}
-            disabled={activeTab !== 'presentation'}
             className="w-[3.2vh] h-[3.2vh] min-w-[26px] min-h-[26px] rounded-lg grid place-items-center text-[#aebfd1] bg-white/5 hover:bg-white/10 hover:text-[#eaf1f8] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
             title="Previous (←)"
             aria-label="Previous"
@@ -1372,7 +1396,6 @@ export default function ControlBoardDashboard() {
           <button 
             id="play" 
             onClick={handlePlayPause}
-            disabled={activeTab !== 'presentation'}
             className="w-[3.2vh] h-[3.2vh] min-w-[26px] min-h-[26px] rounded-lg grid place-items-center text-[#aebfd1] bg-white/5 hover:bg-white/10 hover:text-[#eaf1f8] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
             title="Pause/Play (space)"
             aria-label="Pause or play"
@@ -1383,7 +1406,6 @@ export default function ControlBoardDashboard() {
           <button 
             id="next" 
             onClick={handleNext}
-            disabled={activeTab !== 'presentation'}
             className="w-[3.2vh] h-[3.2vh] min-w-[26px] min-h-[26px] rounded-lg grid place-items-center text-[#aebfd1] bg-white/5 hover:bg-white/10 hover:text-[#eaf1f8] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
             title="Next (→)"
             aria-label="Next"
@@ -1404,7 +1426,7 @@ export default function ControlBoardDashboard() {
           <i 
             id="cyclebar" 
             className="block h-full bg-[#34c6a6] rounded-full transition-all ease-linear duration-100" 
-            style={{ width: `${activeTab === 'presentation' ? progress : 0}%` }}
+            style={{ width: `${progress}%` }}
           ></i>
         </div>
         
@@ -1413,8 +1435,7 @@ export default function ControlBoardDashboard() {
           {[0, 1, 2, 3].map((idx) => (
             <button
               key={idx}
-              onClick={() => activeTab === 'presentation' && handleDotClick(idx)}
-              disabled={activeTab !== 'presentation'}
+              onClick={() => handleDotClick(idx)}
               className={`w-[0.85vw] h-[0.85vw] min-w-[9px] min-h-[9px] rounded-full transition-all duration-300 cursor-pointer ${
                 slideIndex === idx 
                   ? 'bg-[#34c6a6] scale-125' 
