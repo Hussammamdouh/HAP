@@ -1,0 +1,1724 @@
+{
+  "PC": [
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Masterplanning",
+      "stage": "50% Concept Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2024-11-10",
+      "fFinish": "2024-11-10",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - 50% CD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2024-12-01",
+      "fFinish": "2024-12-01",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Masterplanning",
+      "stage": "100% Concept Design Review",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2024-12-15",
+      "fFinish": "2024-12-15",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - 100% CD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2024-12-29",
+      "fFinish": "2024-12-29",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Masterplanning",
+      "stage": "100% Schematic Design & BODR",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-01-12",
+      "fFinish": "2025-01-12",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - 100% SD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-01-26",
+      "fFinish": "2025-01-26",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Masterplanning",
+      "stage": "50% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-03-16",
+      "fFinish": "2025-03-16",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - 50% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-03-30",
+      "fFinish": "2025-03-30",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Masterplanning",
+      "stage": "100% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-05-25",
+      "fFinish": "2025-05-25",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - 100% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-06-08",
+      "fFinish": "2025-06-08",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Masterplanning",
+      "stage": "Tender Package",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-10-06",
+      "fFinish": "2026-03-18",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - TD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-10-20",
+      "fFinish": "2026-04-05",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Masterplanning",
+      "stage": "IFT Submission",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-11-03",
+      "fFinish": "2026-04-06",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Infrastructure & Roads",
+      "stage": "50% Concept Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2024-11-10",
+      "fFinish": "2024-11-10",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - 50% CD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2024-12-01",
+      "fFinish": "2024-12-01",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Infrastructure & Roads",
+      "stage": "100% Concept Design Review",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2024-12-15",
+      "fFinish": "2024-12-15",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - 100% CD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2024-12-29",
+      "fFinish": "2024-12-29",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Infrastructure & Roads",
+      "stage": "100% Schematic Design & BODR",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-01-12",
+      "fFinish": "2025-01-12",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - 100% SD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-01-26",
+      "fFinish": "2025-01-26",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Infrastructure & Roads",
+      "stage": "50% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-03-16",
+      "fFinish": "2025-03-16",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - 50% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-06-08",
+      "fFinish": "2025-06-08",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Infrastructure & Roads",
+      "stage": "100% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-08-31",
+      "fFinish": "2025-08-31",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - 100% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-09-14",
+      "fFinish": "2025-09-14",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Tender Package",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-10-06",
+      "fFinish": "2026-04-09",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - TD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-10-20",
+      "fFinish": "2026-05-05",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Infrastructure & Roads",
+      "stage": "MIDAR Approval - 1A",
+      "owner": "Ashraf / Qadry / Afifi",
+      "consultant": null,
+      "bFinish": "2026-02-02",
+      "fFinish": "2026-07-06",
+      "status": "In Progress"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Infrastructure & Roads",
+      "stage": "IFT Submission After Midar Comments",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-02-16",
+      "fFinish": "2026-07-20",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "100% Concept Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2024-11-13",
+      "fFinish": "2024-11-13",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 100% CD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2024-12-02",
+      "fFinish": "2024-12-02",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "100% Schematic Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2024-12-26",
+      "fFinish": "2024-12-26",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 100% SD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-01-12",
+      "fFinish": "2025-01-12",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Cost Plan - 100% SD",
+      "owner": "Nour / Noha",
+      "consultant": null,
+      "bFinish": "2025-01-26",
+      "fFinish": "2025-01-26",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "50% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-03-03",
+      "fFinish": "2025-03-03",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 50% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-05-27",
+      "fFinish": "2025-05-27",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "100% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-08-18",
+      "fFinish": "2025-08-18",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 100% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-09-01",
+      "fFinish": "2025-09-01",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Cost Plan - 100% DD",
+      "owner": "Nour / Noha",
+      "consultant": null,
+      "bFinish": "2025-09-01",
+      "fFinish": "2025-09-01",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Permit Drawings",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-09-30",
+      "fFinish": "2025-09-30",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Tender Package",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-10-02",
+      "fFinish": "2026-03-18",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Internal Review - TD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-10-16",
+      "fFinish": "2026-04-05",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "BOQ Preperation",
+      "owner": null,
+      "consultant": null,
+      "bFinish": "2025-11-13",
+      "fFinish": "2026-05-03",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Tender Process",
+      "owner": null,
+      "consultant": null,
+      "bFinish": "2026-02-05",
+      "fFinish": "2026-07-26",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Contracor Mobilization & Contract Signature",
+      "owner": null,
+      "consultant": null,
+      "bFinish": "2026-03-19",
+      "fFinish": "2026-09-06",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "100% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2026-05-17",
+      "fFinish": "2026-06-10",
+      "status": "In Progress"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 100% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-05-31",
+      "fFinish": "2026-06-24",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Tender Package",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2026-06-14",
+      "fFinish": "2026-07-08",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Internal Review - TD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-06-28",
+      "fFinish": "2026-07-22",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Mood Board has been considered from SLR Concept",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-11-12",
+      "fFinish": "2025-12-18",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "100% Schematic Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-12-24",
+      "fFinish": "2026-01-29",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 100% SD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-01-07",
+      "fFinish": "2026-02-08",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "50% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2026-02-04",
+      "fFinish": "2026-05-04",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 50% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-02-18",
+      "fFinish": "2026-05-25",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "100% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": null,
+      "fFinish": "2026-06-15",
+      "status": "In Progress"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 100% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": null,
+      "fFinish": "2026-06-22",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Cost Plan - 100% DD",
+      "owner": "Nour / Noha",
+      "consultant": null,
+      "bFinish": "2026-02-18",
+      "fFinish": "2026-06-29",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Tender Package",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2026-03-08",
+      "fFinish": "2026-07-09",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Internal Review - TD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-03-22",
+      "fFinish": "2026-07-23",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "BOQ Preperation",
+      "owner": null,
+      "consultant": "ECG",
+      "bFinish": "2026-04-19",
+      "fFinish": "2026-08-20",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Buildings",
+      "stage": "Tender Process",
+      "owner": null,
+      "consultant": null,
+      "bFinish": "2026-07-12",
+      "fFinish": "2026-11-12",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Landscape",
+      "stage": "50% Detailed Design",
+      "owner": "Hoda / Roshdy",
+      "consultant": "ECG",
+      "bFinish": "2026-06-03",
+      "fFinish": "2026-06-15",
+      "status": "In Progress"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Landscape",
+      "stage": "Internal Review - 50% DD",
+      "owner": "Hoda / Roshdy",
+      "consultant": null,
+      "bFinish": "2026-06-17",
+      "fFinish": "2026-06-29",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Landscape",
+      "stage": "100% Detailed Design",
+      "owner": "Hoda / Roshdy",
+      "consultant": "ECG",
+      "bFinish": "2026-07-15",
+      "fFinish": "2026-07-27",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Landscape",
+      "stage": "Internal Review - 100% DD",
+      "owner": "Hoda / Roshdy",
+      "consultant": null,
+      "bFinish": "2026-07-29",
+      "fFinish": "2026-08-10",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Landscape",
+      "stage": "Cost Plan - 100% DD",
+      "owner": "Nour / Noha",
+      "consultant": null,
+      "bFinish": "2026-07-29",
+      "fFinish": "2026-08-10",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Landscape",
+      "stage": "Tender Package - 1A Left",
+      "owner": "Hoda / Roshdy",
+      "consultant": "ECG",
+      "bFinish": "2026-08-19",
+      "fFinish": "2026-08-31",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Landscape",
+      "stage": "Internal Review - TD 1A Left",
+      "owner": "Hoda / Roshdy",
+      "consultant": null,
+      "bFinish": "2026-09-02",
+      "fFinish": "2026-09-14",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Landscape",
+      "stage": "Tender Package - 1A Right",
+      "owner": "Hoda / Roshdy",
+      "consultant": "ECG",
+      "bFinish": "2026-09-09",
+      "fFinish": "2026-09-21",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Landscape",
+      "stage": "Internal Review - TD 1A Right",
+      "owner": "Hoda / Roshdy",
+      "consultant": null,
+      "bFinish": "2026-09-16",
+      "fFinish": "2026-09-28",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Authorities & Permits",
+      "stage": "Ministerial Decree Package",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-06-22",
+      "fFinish": "2025-06-22",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Authorities & Permits",
+      "stage": "Ministerial decree-NUCA",
+      "owner": "Afifi",
+      "consultant": null,
+      "bFinish": "2025-12-08",
+      "fFinish": "2026-09-13",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Authorities & Permits",
+      "stage": "Construction licenses- Ancillary Buildings Permits",
+      "owner": "Afifi",
+      "consultant": null,
+      "bFinish": "2026-04-27",
+      "fFinish": "2026-12-06",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Authorities & Permits",
+      "stage": "Ministerial decree-Midar",
+      "owner": "Afifi",
+      "consultant": null,
+      "bFinish": "2025-08-18",
+      "fFinish": "2025-08-18",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Authorities & Permits",
+      "stage": "Ministerial decree-NUCA",
+      "owner": "Afifi",
+      "consultant": null,
+      "bFinish": "2025-12-08",
+      "fFinish": "2026-03-25",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Authorities & Permits",
+      "stage": "Egyptian Institution for Construction Civil Liability Insurance & Civil Defense",
+      "owner": "Afifi",
+      "consultant": null,
+      "bFinish": "2026-01-19",
+      "fFinish": "2026-07-05",
+      "status": "In Progress"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Authorities & Permits",
+      "stage": "Construction licenses-Permits",
+      "owner": "Afifi",
+      "consultant": null,
+      "bFinish": "2026-03-02",
+      "fFinish": "2026-08-16",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1A (Terraces)",
+      "scope": "Authorities & Permits",
+      "stage": "Mineral licenses-Excavation",
+      "owner": "Afifi",
+      "consultant": null,
+      "bFinish": "2026-04-27",
+      "fFinish": "2026-10-11",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Masterplanning",
+      "stage": "50% Concept Design Review",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2024-11-10",
+      "fFinish": "2024-11-10",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - 50% CD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2024-11-24",
+      "fFinish": "2024-11-24",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Masterplanning",
+      "stage": "100% Concept Design Review",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2024-12-08",
+      "fFinish": "2024-12-08",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - 100% CD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2024-12-22",
+      "fFinish": "2024-12-22",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Masterplanning",
+      "stage": "100% Schematic Design & BODR",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-01-05",
+      "fFinish": "2025-01-05",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - 100% SD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-01-19",
+      "fFinish": "2025-01-19",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Masterplanning",
+      "stage": "50% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-09-07",
+      "fFinish": "2025-09-07",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - 50% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-09-21",
+      "fFinish": "2025-09-21",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Masterplanning",
+      "stage": "100% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-11-09",
+      "fFinish": "2025-12-08",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - 100% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-11-23",
+      "fFinish": "2026-01-19",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Masterplanning",
+      "stage": "Tender Package",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-12-14",
+      "fFinish": "2026-04-02",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - TD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-12-28",
+      "fFinish": "2026-04-07",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Masterplanning",
+      "stage": "IFT Submission",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-01-11",
+      "fFinish": "2026-07-30",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Infrastructure & Roads",
+      "stage": "50% Concept Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2024-11-10",
+      "fFinish": "2024-11-10",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - 50% CD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2024-12-01",
+      "fFinish": "2024-12-01",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Infrastructure & Roads",
+      "stage": "100% Concept Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2024-12-15",
+      "fFinish": "2024-12-15",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - 100% CD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2024-12-29",
+      "fFinish": "2024-12-29",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Infrastructure & Roads",
+      "stage": "100% Schematic Design & BODR",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-01-12",
+      "fFinish": "2025-01-12",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - 100% SD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-01-26",
+      "fFinish": "2025-01-26",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Infrastructure & Roads",
+      "stage": "50% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-09-07",
+      "fFinish": "2025-09-07",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - 50% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-09-21",
+      "fFinish": "2025-09-21",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Infrastructure & Roads",
+      "stage": "100% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2025-11-09",
+      "fFinish": "2025-12-08",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - 100% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-11-23",
+      "fFinish": "2026-02-25",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Tender Package",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2026-02-23",
+      "fFinish": "2026-04-02",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - TD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-03-09",
+      "fFinish": "2026-05-05",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Infrastructure & Roads",
+      "stage": "MIDAR Approval",
+      "owner": "Ashraf / Qadry / Afifi",
+      "consultant": null,
+      "bFinish": "2026-02-02",
+      "fFinish": "2026-07-06",
+      "status": "In Progress"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "50% Concept Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2025-08-17",
+      "fFinish": "2025-08-17",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "100% Concept Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2025-08-31",
+      "fFinish": "2025-08-31",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Internal & Consultant Review - 100% Concept Verification",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-10-12",
+      "fFinish": "2025-10-28",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "100% Schematic Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2025-11-02",
+      "fFinish": "2025-12-09",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 100% SD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-11-16",
+      "fFinish": "2025-12-17",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Cost Plan - 100% SD",
+      "owner": "Nour / Noha",
+      "consultant": "Survtec",
+      "bFinish": "2025-11-16",
+      "fFinish": "2026-03-03",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "50% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2025-12-18",
+      "fFinish": "2026-01-19",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 50% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-01-01",
+      "fFinish": "2026-02-02",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "100% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2026-01-22",
+      "fFinish": "2026-03-04",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Permits Drawings",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2026-01-29",
+      "fFinish": "2026-01-19",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 100% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-02-12",
+      "fFinish": "2026-04-07",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Structure Peer Review - 100% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2026-02-12",
+      "fFinish": "2026-03-30",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Cost Plan for Detailed Design",
+      "owner": "Nour / Noha",
+      "consultant": "Survtec",
+      "bFinish": "2026-02-05",
+      "fFinish": "2026-04-01",
+      "status": "In Progress"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Updated Permits Drawings",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": null,
+      "fFinish": "2026-04-15",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Tender Package (Great Lawn B1&B2)",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2026-03-05",
+      "fFinish": "2026-06-22",
+      "status": "In Progress"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Internal Review - TD (Great Lawn B1&B2)",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-03-19",
+      "fFinish": "2026-07-06",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Design Development  - Teracce 01&02",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2026-04-05",
+      "fFinish": "2026-07-23",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Internal Review - DD Teracce 01&02",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-04-12",
+      "fFinish": "2026-07-30",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Tender Package - Teracce 01&02",
+      "owner": null,
+      "consultant": null,
+      "bFinish": "2026-04-26",
+      "fFinish": "2026-08-13",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Internal Review - TD Teracce 01&02",
+      "owner": null,
+      "consultant": null,
+      "bFinish": "2026-05-03",
+      "fFinish": "2026-08-20",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "BOQ Preperation",
+      "owner": null,
+      "consultant": null,
+      "bFinish": "2026-04-19",
+      "fFinish": "2026-09-17",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Tender Process",
+      "owner": null,
+      "consultant": null,
+      "bFinish": "2026-07-12",
+      "fFinish": "2026-12-10",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "IFC",
+      "owner": null,
+      "consultant": null,
+      "bFinish": "2026-07-12",
+      "fFinish": "2026-12-10",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Buildings",
+      "stage": "Contractor Mobilization",
+      "owner": null,
+      "consultant": null,
+      "bFinish": "2026-08-09",
+      "fFinish": "2027-01-07",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Landscape",
+      "stage": "50% Detailed Design",
+      "owner": "Hoda / Roshdy",
+      "consultant": "ECG",
+      "bFinish": "2026-10-14",
+      "fFinish": "2026-10-26",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Landscape",
+      "stage": "Internal Review - 50% DD",
+      "owner": "Hoda / Roshdy",
+      "consultant": null,
+      "bFinish": "2026-10-28",
+      "fFinish": "2026-11-09",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Landscape",
+      "stage": "100% Detailed Design",
+      "owner": "Hoda / Roshdy",
+      "consultant": "ECG",
+      "bFinish": "2026-11-25",
+      "fFinish": "2026-12-07",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Landscape",
+      "stage": "Internal Review - 100% DD",
+      "owner": "Hoda / Roshdy",
+      "consultant": null,
+      "bFinish": "2026-12-09",
+      "fFinish": "2026-12-21",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Landscape",
+      "stage": "Cost Plan - 100% DD",
+      "owner": "Nour / Noha",
+      "consultant": null,
+      "bFinish": "2026-12-09",
+      "fFinish": "2026-12-21",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Landscape",
+      "stage": "Tender Package - 2B",
+      "owner": "Hoda / Roshdy",
+      "consultant": "ECG",
+      "bFinish": "2026-12-30",
+      "fFinish": "2027-01-11",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Landscape",
+      "stage": "Internal Review - TD 2B",
+      "owner": "Hoda / Roshdy",
+      "consultant": null,
+      "bFinish": "2027-01-13",
+      "fFinish": "2027-01-25",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Landscape",
+      "stage": "Tender Package - 2A",
+      "owner": "Hoda / Roshdy",
+      "consultant": "ECG",
+      "bFinish": "2027-01-20",
+      "fFinish": "2027-02-01",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Landscape",
+      "stage": "Internal Review - TD 2A",
+      "owner": "Hoda / Roshdy",
+      "consultant": null,
+      "bFinish": "2027-01-27",
+      "fFinish": "2027-02-08",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Authorities & Permits",
+      "stage": "Ministerial decree-NUCA",
+      "owner": "Afifi",
+      "consultant": null,
+      "bFinish": "2025-12-08",
+      "fFinish": "2026-03-25",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Authorities & Permits",
+      "stage": "Egyptian Institution for Construction Civil Liability Insurance & Civil Defense",
+      "owner": "Afifi",
+      "consultant": null,
+      "bFinish": "2026-02-12",
+      "fFinish": "2026-07-05",
+      "status": "In Progress"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Authorities & Permits",
+      "stage": "Construction licenses-Permits",
+      "owner": "Afifi",
+      "consultant": null,
+      "bFinish": "2026-03-26",
+      "fFinish": "2026-08-16",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 2A/2B (Great Lawn)",
+      "scope": "Authorities & Permits",
+      "stage": "Mineral licenses-Excavation",
+      "owner": "Afifi",
+      "consultant": null,
+      "bFinish": "2026-06-18",
+      "fFinish": "2026-11-08",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Masterplanning",
+      "stage": "50% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2026-05-31",
+      "fFinish": "2026-05-25",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - 50% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-06-14",
+      "fFinish": "2026-06-11",
+      "status": "In Progress"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Masterplanning",
+      "stage": "100% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2026-07-12",
+      "fFinish": "2026-07-09",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - 100% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-07-26",
+      "fFinish": "2026-07-23",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Masterplanning",
+      "stage": "Tender Package",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2026-08-09",
+      "fFinish": "2026-08-06",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Masterplanning",
+      "stage": "Internal Review - TD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-08-23",
+      "fFinish": "2026-08-20",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Masterplanning",
+      "stage": "IFC Submission",
+      "owner": null,
+      "consultant": null,
+      "bFinish": "2026-09-06",
+      "fFinish": "2026-09-03",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Infrastructure & Roads",
+      "stage": "50% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2026-05-31",
+      "fFinish": "2026-05-25",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - 50% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-06-14",
+      "fFinish": "2026-06-11",
+      "status": "In Progress"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Infrastructure & Roads",
+      "stage": "100% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2026-08-09",
+      "fFinish": "2026-08-06",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - 100% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-08-23",
+      "fFinish": "2026-08-20",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Midar Approval - 1B & 2C",
+      "owner": "Ashraf / Qadry / Afifi",
+      "consultant": null,
+      "bFinish": "2026-09-06",
+      "fFinish": "2026-09-03",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Tender Package",
+      "owner": "Ashraf / Qadry",
+      "consultant": "ECG",
+      "bFinish": "2026-09-20",
+      "fFinish": "2026-09-17",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Infrastructure & Roads",
+      "stage": "Internal Review - TD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-10-04",
+      "fFinish": "2026-10-01",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "50% Concept Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KMA",
+      "bFinish": "2025-09-04",
+      "fFinish": "2025-09-04",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "100% Concept Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KMA",
+      "bFinish": "2025-10-02",
+      "fFinish": "2025-10-02",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 100% CD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-10-16",
+      "fFinish": "2025-10-16",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "Tender to assign Consultant",
+      "owner": null,
+      "consultant": null,
+      "bFinish": "2025-11-13",
+      "fFinish": "2026-04-07",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "Concept Verification",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2025-11-27",
+      "fFinish": "2026-04-27",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "Internal Review - CV",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2025-12-04",
+      "fFinish": "2026-05-05",
+      "status": "Complete"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "100% Schematic Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2026-01-01",
+      "fFinish": "2026-06-15",
+      "status": "In Progress"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 100% SD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-01-15",
+      "fFinish": "2026-06-29",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "Cost Plan - 100% SD",
+      "owner": "Nour / Noha",
+      "consultant": null,
+      "bFinish": "2026-01-15",
+      "fFinish": "2026-06-29",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "50% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2026-02-12",
+      "fFinish": "2026-07-27",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 50% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-02-26",
+      "fFinish": "2026-08-10",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "100% Detailed Design",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2026-03-19",
+      "fFinish": "2026-08-31",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "Internal Review - 100% DD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-04-02",
+      "fFinish": "2026-09-14",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "Cost Plan - 100% DD",
+      "owner": "Nour / Noha",
+      "consultant": null,
+      "bFinish": "2026-04-02",
+      "fFinish": "2026-09-14",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "Permits Drawings - 1B",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2026-04-16",
+      "fFinish": "2026-09-28",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "Tender Package",
+      "owner": "Ashraf / Qadry",
+      "consultant": "KAD",
+      "bFinish": "2026-04-16",
+      "fFinish": "2026-09-28",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "Internal Review - TD",
+      "owner": "Ashraf / Qadry",
+      "consultant": null,
+      "bFinish": "2026-04-30",
+      "fFinish": "2026-10-12",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "Tender Action",
+      "owner": null,
+      "consultant": null,
+      "bFinish": "2026-08-20",
+      "fFinish": "2027-02-01",
+      "status": "Not Started"
+    },
+    {
+      "phase": "Phase 1B/2C (Villas)",
+      "scope": "Buildings",
+      "stage": "BLDGs Construction Tender",
+      "owner": null,
+      "consultant": null,
+      "bFinish": "2026-09-03",
+      "fFinish": "2027-02-15",
+      "status": "Not Started"
+    }
+  ]
+}

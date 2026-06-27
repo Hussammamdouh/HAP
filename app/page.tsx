@@ -1,183 +1,404 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { 
-  Database, 
-  ArrowLeft, 
+  Play, 
+  Pause, 
+  ChevronLeft, 
+  ChevronRight, 
   Search, 
-  CheckCircle2, 
-  Calendar, 
   Filter, 
-  ListTodo, 
+  Calendar, 
+  Clock, 
+  ArrowLeft, 
+  CheckCircle2, 
+  Database, 
   Users, 
-  ShieldAlert
+  ShieldAlert, 
+  ListTodo,
+  TrendingUp,
+  AlertTriangle
 } from 'lucide-react';
+import rawData from './projects-data.json';
 
-// ==========================================
-// MOCK DATA REPRESENTING PORTFOLIO
-// ==========================================
+// Define data interfaces
+interface TaskData {
+  phase: string;
+  scope: string;
+  stage: string;
+  owner: string | null;
+  consultant: string | null;
+  bFinish: string | null;
+  fFinish: string | null;
+  status: string;
+}
 
-const portfolioStats = {
-  totalProjects: 9,
-  avgCompletion: 48.1,
-  delayed: 7,
-  onTrack: 1,
-  commercialOnHold: 1,
-  totalOpenTasks: 74,
-  overdueTasks: 43
+const tasks: TaskData[] = rawData.PC;
+
+// Helper to compute delay in days
+const getDelayDays = (bFinish: string | null, fFinish: string | null): number => {
+  if (!bFinish || !fFinish) return 0;
+  const b = new Date(bFinish);
+  const f = new Date(fFinish);
+  if (isNaN(b.getTime()) || isNaN(f.getTime())) return 0;
+  const diff = f.getTime() - b.getTime();
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 };
 
-const projectsData = [
-  { id: 1, name: 'SLNX', progress: 73.1, status: 'Commercial on hold', delay: 94, nextDeadline: '2026-05-03', overdueTasks: 27, phase: 'Design' },
-  { id: 2, name: 'SLR', progress: 37.0, status: 'Delayed', delay: 226, nextDeadline: '2026-06-22', overdueTasks: 6, phase: 'Construction' },
-  { id: 3, name: 'CRI', progress: 59.7, status: 'Delayed', delay: 0, nextDeadline: '2026-06-25', overdueTasks: 1, phase: 'Construction' },
-  { id: 4, name: 'HPT', progress: 57.2, status: 'Delayed', delay: 277, nextDeadline: '2026-06-25', overdueTasks: 1, phase: 'Construction' },
-  { id: 5, name: 'DRJ', progress: 43.2, status: 'Delayed', delay: 20, nextDeadline: '2026-07-15', overdueTasks: 4, phase: 'Construction' },
-  { id: 6, name: 'Encore', progress: 70.8, status: 'Delayed', delay: 4, nextDeadline: '2026-07-20', overdueTasks: 2, phase: 'Construction' },
-  { id: 7, name: 'Keys 52', progress: 92.5, status: 'Delayed', delay: 234, nextDeadline: '2026-08-01', overdueTasks: 12, phase: 'Construction' },
-  { id: 8, name: 'Lotus', progress: 1.9, status: 'On Track', delay: 35, nextDeadline: '2026-08-10', overdueTasks: 0, phase: 'Procurement' },
-  { id: 9, name: 'SLW NOA', progress: 43.2, status: 'Delayed', delay: 64, nextDeadline: '2026-08-15', overdueTasks: 8, phase: 'Construction' },
+// Phases in presentation order
+const PHASES = [
+  "Phase 1A (Terraces)",
+  "Phase 2A/2B (Great Lawn)",
+  "Phase 1B/2C (Villas)"
 ];
 
-const projectTasksTemplates: Record<string, Array<{
-  id: number;
-  name: string;
-  type: string;
-  baselineStart: string;
-  actualFinish: string;
-  progress: number;
-  status: 'Completed' | 'In Progress' | 'Delayed' | 'Upcoming';
-  owner: { name: string; initials: string; avatarBg: string };
-  blocker?: string;
-}>> = {
-  'SLNX': [
-    { id: 1, name: 'Permit Drawings & Code Compliance', type: 'Design', baselineStart: '2025-09-28', actualFinish: '2026-02-14', progress: 100, status: 'Completed', owner: { name: 'Amr El-Sherif', initials: 'AE', avatarBg: 'bg-[#d4af37] text-slate-900' } },
-    { id: 2, name: 'HVAC Schematic Infrastructure', type: 'Design', baselineStart: '2025-10-15', actualFinish: '2026-03-01', progress: 100, status: 'Completed', owner: { name: 'Laila Mansour', initials: 'LM', avatarBg: 'bg-[#d4af37] text-slate-900' } },
-    { id: 3, name: 'Facade System Architectural Review', type: 'Design', baselineStart: '2026-01-10', actualFinish: '-', progress: 40, status: 'Delayed', owner: { name: 'Tarek Hegazi', initials: 'TH', avatarBg: 'bg-rose-600 text-white' }, blocker: 'Awaiting client approval on gold glaze structural cladding finish' },
-    { id: 4, name: 'Main Power Substation Procurement', type: 'Procurement', baselineStart: '2026-02-20', actualFinish: '-', progress: 0, status: 'Delayed', owner: { name: 'Sherif Fayed', initials: 'SF', avatarBg: 'bg-rose-600 text-white' }, blocker: 'Pricing variances exceed approved design budget thresholds' },
-  ],
-  'SLR': [
-    { id: 1, name: 'Substructure Excavation & Shoring', type: 'Construction', baselineStart: '2025-10-01', actualFinish: '2026-01-20', progress: 100, status: 'Completed', owner: { name: 'Nader Ghali', initials: 'NG', avatarBg: 'bg-[#d4af37] text-slate-900' } },
-    { id: 2, name: 'Foundation Slab Cast Block 1', type: 'Construction', baselineStart: '2025-12-05', actualFinish: '2026-04-15', progress: 100, status: 'Completed', owner: { name: 'Yasmine Sabri', initials: 'YS', avatarBg: 'bg-[#d4af37] text-slate-900' } },
-    { id: 3, name: 'Superstructure Concrete Columns (L1)', type: 'Construction', baselineStart: '2026-02-01', actualFinish: '-', progress: 50, status: 'Delayed', owner: { name: 'Hassan Allam Jr.', initials: 'HA', avatarBg: 'bg-rose-600 text-white' }, blocker: 'Portland cement supply delivery chain logistics bottleneck' },
-    { id: 4, name: 'Electrical Duct Routing (Underground)', type: 'Construction', baselineStart: '2026-03-10', actualFinish: '-', progress: 10, status: 'In Progress', owner: { name: 'Mona Zaki', initials: 'MZ', avatarBg: 'bg-blue-600 text-white' } },
-  ],
-  'Lotus': [
-    { id: 1, name: 'Landscape Design Guidelines Spec', type: 'Design', baselineStart: '2026-03-01', actualFinish: '-', progress: 25, status: 'In Progress', owner: { name: 'Karim Abdelaziz', initials: 'KA', avatarBg: 'bg-blue-600 text-white' } },
-    { id: 2, name: 'Sod and Topsoil Procurement Contract', type: 'Procurement', baselineStart: '2026-04-15', actualFinish: '-', progress: 0, status: 'Upcoming', owner: { name: 'Hossam Ghaly', initials: 'HG', avatarBg: 'bg-slate-400 text-white' } },
-  ],
-  'HPT': [
-    { id: 1, name: 'Structural Framing Core Tower B', type: 'Construction', baselineStart: '2025-08-01', actualFinish: '-', progress: 40, status: 'Delayed', owner: { name: 'Hassan Mourad', initials: 'HM', avatarBg: 'bg-rose-600 text-white' }, blocker: 'Safety compliance audit corrective action reports outstanding' },
-    { id: 2, name: 'Elevator Shaft Concrete Shuttering', type: 'Construction', baselineStart: '2025-09-15', actualFinish: '-', progress: 30, status: 'Delayed', owner: { name: 'Youssef Chahine', initials: 'YC', avatarBg: 'bg-rose-600 text-white' }, blocker: 'Crane maintenance hydraulic cylinder leaks' },
-  ]
-};
+const CYCLE_DURATION_MS = 12000; // 12 seconds per slide
+const CYCLE_INTERVAL_MS = 100;   // Update progress bar every 100ms
 
-const getTasksForProject = (project: typeof projectsData[0]) => {
-  if (projectTasksTemplates[project.name]) {
-    return projectTasksTemplates[project.name];
-  }
-  return [
-    { id: 1, name: 'Structural Foundations Cast', type: 'Construction', baselineStart: '2025-12-01', actualFinish: '2026-04-10', progress: 100, status: 'Completed' as const, owner: { name: 'Ahmed Ramzy', initials: 'AR', avatarBg: 'bg-emerald-600 text-white' } },
-    { id: 2, name: 'MEP Infrastructure Fitout', type: 'Construction', baselineStart: '2026-02-15', actualFinish: '-', progress: Math.max(0, Math.floor(project.progress * 0.8)), status: project.overdueTasks > 0 ? 'Delayed' as const : 'In Progress' as const, owner: { name: 'Faten Hamama', initials: 'FH', avatarBg: 'bg-[#d4af37] text-slate-900' }, blocker: project.overdueTasks > 0 ? 'Equipment procurement delay at Alexandria Port customs' : undefined },
-    { id: 3, name: 'Interior Plaster and Fitouts', type: 'Construction', baselineStart: '2026-05-01', actualFinish: '-', progress: 0, status: 'Upcoming' as const, owner: { name: 'Omar Sharif', initials: 'OS', avatarBg: 'bg-slate-400 text-white' } }
-  ];
-};
+export default function ControlBoardDashboard() {
+  const [activeTab, setActiveTab] = useState<'presentation' | 'interactive'>('presentation');
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
+  const [progress, setProgress] = useState(0);
+  
+  // Real-time Clock State
+  const [timeStr, setTimeStr] = useState('—');
+  const [dateStr, setDateStr] = useState('—');
+  const [refreshTime, setRefreshTime] = useState('');
 
-export default function TechDarkDashboard() {
-  const [activeTab, setActiveTab] = useState<'portfolio' | 'drilldown'>('portfolio');
-  const [selectedProjectId, setSelectedProjectId] = useState<number>(1);
+  // Interactive View Filters State
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
+  const [selectedPhase, setSelectedPhase] = useState('All');
+  const [selectedScope, setSelectedScope] = useState('All');
+  const [selectedStatus, setSelectedStatus] = useState('All');
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
-  // Retrieve project details based on state
-  const selectedProject = useMemo(() => {
-    return projectsData.find(p => p.id === selectedProjectId) || projectsData[0];
-  }, [selectedProjectId]);
+  // Initialize refresh time and clock loop
+  useEffect(() => {
+    const now = new Date();
+    setRefreshTime(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
 
-  const projectTasks = useMemo(() => {
-    return getTasksForProject(selectedProject);
-  }, [selectedProject]);
-
-  // Project Table processing (Sorting & Filtering)
-  const filteredProjects = useMemo(() => {
-    let result = [...projectsData];
-    if (searchQuery.trim() !== '') {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(p => p.name.toLowerCase().includes(q));
-    }
-    if (statusFilter !== 'All') {
-      result = result.filter(p => p.status === statusFilter);
-    }
-    return result;
-  }, [searchQuery, statusFilter]);
-
-  // Visual Pipeline Stages & project groupings
-  const pipelineStages = [
-    { name: 'Pre-Contract', key: 'Pre-Contract' },
-    { name: 'Design', key: 'Design' },
-    { name: 'Procurement', key: 'Procurement' },
-    { name: 'Construction', key: 'Construction' }
-  ];
-
-  const projectPhasesGrouping = useMemo(() => {
-    const groups: Record<string, typeof projectsData> = {
-      'Pre-Contract': [],
-      'Design': [],
-      'Procurement': [],
-      'Construction': []
+    const updateClock = () => {
+      const d = new Date();
+      setTimeStr(d.toLocaleTimeString('en-US', { hour12: false }));
+      setDateStr(d.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }));
     };
-    projectsData.forEach(p => {
-      if (groups[p.phase]) {
-        groups[p.phase].push(p);
-      }
-    });
-    return groups;
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch(status) {
-      case 'On Track': return 'bg-emerald-950/20 text-emerald-400 border border-emerald-900/30';
-      case 'Delayed': return 'bg-rose-950/20 text-rose-400 border border-rose-900/30';
-      case 'Commercial on hold': return 'bg-amber-950/20 text-amber-400 border border-amber-900/30';
-      default: return 'bg-slate-900 text-slate-400 border border-slate-800';
-    }
+  // Slide Index transitions
+  const handleNext = useCallback(() => {
+    setSlideIndex(prev => (prev + 1) % 4);
+    setProgress(0);
+  }, []);
+
+  const handlePrev = useCallback(() => {
+    setSlideIndex(prev => (prev - 1 + 4) % 4);
+    setProgress(0);
+  }, []);
+
+  const handlePlayPause = useCallback(() => {
+    setIsPlaying(prev => !prev);
+  }, []);
+
+  const handleDotClick = (index: number) => {
+    setSlideIndex(index);
+    setProgress(0);
   };
 
-  const getTaskStatusBadge = (status: string) => {
-    switch(status) {
-      case 'Completed': return 'bg-emerald-950/20 text-emerald-400 border border-emerald-900/30';
-      case 'Delayed': return 'bg-rose-950/20 text-rose-400 border border-rose-900/30';
-      case 'In Progress': return 'bg-blue-950/20 text-blue-400 border border-blue-900/30';
-      default: return 'bg-slate-900 text-slate-400 border border-slate-800';
-    }
-  };
+  // Keyboard navigation hotkeys for Presentation Mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (activeTab !== 'presentation') return;
 
-  // Circumference definitions for circle SVGs
-  const radius = 40;
-  const circ = 2 * Math.PI * radius; // ~251.3
-  const avgCompletionDash = circ - (circ * portfolioStats.avgCompletion) / 100;
-  const delayedDash = circ - (circ * (portfolioStats.delayed / portfolioStats.totalProjects)) * 100 / 100;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        handlePlayPause();
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        handleNext();
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrev();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeTab, handlePlayPause, handleNext, handlePrev]);
+
+  // Slideshow Auto-cycling Timer loop
+  useEffect(() => {
+    if (!isPlaying || activeTab !== 'presentation') return;
+
+    const step = (CYCLE_INTERVAL_MS / CYCLE_DURATION_MS) * 100;
+    const interval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          setSlideIndex(curr => (curr + 1) % 4);
+          return 0;
+        }
+        return prev + step;
+      });
+    }, CYCLE_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [isPlaying, slideIndex, activeTab]);
+
+  // Unique scopes in the dataset
+  const allScopes = useMemo(() => {
+    const scopes = new Set<string>();
+    tasks.forEach(t => scopes.add(t.scope));
+    return Array.from(scopes);
+  }, []);
+
+  // Portfolio level stats computed dynamically
+  const portfolioStats = useMemo(() => {
+    const total = tasks.length;
+    const completed = tasks.filter(t => t.status === 'Complete').length;
+    const inProgress = tasks.filter(t => t.status === 'In Progress').length;
+    const notStarted = tasks.filter(t => t.status === 'Not Started').length;
+    const delayed = tasks.filter(t => t.status !== 'Complete' && getDelayDays(t.bFinish, t.fFinish) > 0).length;
+    const completionPercent = total > 0 ? Math.round((completed / total) * 1000) / 10 : 0;
+    const totalDelayDays = tasks.reduce((sum, t) => sum + getDelayDays(t.bFinish, t.fFinish), 0);
+
+    return {
+      total,
+      completed,
+      inProgress,
+      notStarted,
+      delayed,
+      completionPercent,
+      totalDelayDays
+    };
+  }, []);
+
+  // Phase level stats computed dynamically
+  const phaseStats = useMemo(() => {
+    return PHASES.map(phaseName => {
+      const phaseTasks = tasks.filter(t => t.phase === phaseName);
+      const total = phaseTasks.length;
+      const completed = phaseTasks.filter(t => t.status === 'Complete').length;
+      const inProgress = phaseTasks.filter(t => t.status === 'In Progress').length;
+      const notStarted = phaseTasks.filter(t => t.status === 'Not Started').length;
+      const delayed = phaseTasks.filter(t => t.status !== 'Complete' && getDelayDays(t.bFinish, t.fFinish) > 0).length;
+      const completionPercent = total > 0 ? Math.round((completed / total) * 1000) / 10 : 0;
+      const totalDelayDays = phaseTasks.reduce((sum, t) => sum + getDelayDays(t.bFinish, t.fFinish), 0);
+
+      // Determine phase health color dot
+      let healthColor = 'g';
+      if (delayed >= 5) {
+        healthColor = 'r';
+      } else if (delayed > 0) {
+        healthColor = 'a';
+      }
+
+      return {
+        name: phaseName,
+        total,
+        completed,
+        inProgress,
+        notStarted,
+        delayed,
+        completionPercent,
+        totalDelayDays,
+        healthColor,
+        tasks: phaseTasks
+      };
+    });
+  }, []);
+
+  // Scope distribution statistics for Portfolio overview stacked bar chart
+  const scopeBreakdown = useMemo(() => {
+    return allScopes.map(scopeName => {
+      const scopeTasks = tasks.filter(t => t.scope === scopeName);
+      const total = scopeTasks.length;
+      const completed = scopeTasks.filter(t => t.status === 'Complete').length;
+      const inProgress = scopeTasks.filter(t => t.status === 'In Progress').length;
+      const notStarted = scopeTasks.filter(t => t.status === 'Not Started').length;
+
+      return {
+        name: scopeName,
+        total,
+        completed,
+        inProgress,
+        notStarted,
+        completedPercent: total > 0 ? (completed / total) * 100 : 0,
+        inProgressPercent: total > 0 ? (inProgress / total) * 100 : 0,
+        notStartedPercent: total > 0 ? (notStarted / total) * 100 : 0
+      };
+    });
+  }, [allScopes]);
+
+  // Phase Specific Scope Progress breakdown (circular gauges)
+  const phaseScopes = useMemo(() => {
+    return phaseStats.map(phase => {
+      const scopesMap: Record<string, { total: number; completed: number }> = {};
+      phase.tasks.forEach(t => {
+        if (!scopesMap[t.scope]) {
+          scopesMap[t.scope] = { total: 0, completed: 0 };
+        }
+        scopesMap[t.scope].total++;
+        if (t.status === 'Complete') {
+          scopesMap[t.scope].completed++;
+        }
+      });
+      
+      return Object.keys(scopesMap).map(scopeName => {
+        const { total, completed } = scopesMap[scopeName];
+        return {
+          name: scopeName,
+          total,
+          completed,
+          percent: total > 0 ? (completed / total) * 100 : 0
+        };
+      });
+    });
+  }, [phaseStats]);
+
+  // Filtered tasks logic for the Interactive Drill-Down view
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(t => {
+      const matchesSearch = searchQuery === '' || 
+        t.stage.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (t.owner && t.owner.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (t.consultant && t.consultant.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      const matchesPhase = selectedPhase === 'All' || t.phase === selectedPhase;
+      const matchesScope = selectedScope === 'All' || t.scope === selectedScope;
+      
+      let matchesStatus = true;
+      if (selectedStatus !== 'All') {
+        if (selectedStatus === 'Delayed') {
+          matchesStatus = t.status !== 'Complete' && getDelayDays(t.bFinish, t.fFinish) > 0;
+        } else {
+          matchesStatus = t.status === selectedStatus;
+        }
+      }
+
+      return matchesSearch && matchesPhase && matchesScope && matchesStatus;
+    });
+  }, [searchQuery, selectedPhase, selectedScope, selectedStatus]);
+
+  // Selected task in Drill-Down mode
+  const selectedTask = useMemo(() => {
+    if (selectedTaskId) {
+      const found = tasks.find(t => `${t.phase}-${t.scope}-${t.stage}` === selectedTaskId);
+      if (found) return found;
+    }
+    return filteredTasks[0] || null;
+  }, [selectedTaskId, filteredTasks]);
+
+  // Interactive Gantt Timeline Scope chart calculations (Scope tracks plotted chronologically)
+  const interactiveTimeline = useMemo(() => {
+    const scopeGroups: Record<string, TaskData[]> = {};
+    filteredTasks.forEach(t => {
+      if (!scopeGroups[t.scope]) {
+        scopeGroups[t.scope] = [];
+      }
+      scopeGroups[t.scope].push(t);
+    });
+    
+    // Timeline window ranges from Jan 2024 to Jul 2027
+    const minTime = new Date("2024-01-01").getTime();
+    const maxTime = new Date("2027-07-01").getTime();
+    const totalRange = maxTime - minTime;
+    
+    return Object.keys(scopeGroups).map(scopeName => {
+      const groupTasks = scopeGroups[scopeName];
+      let startVal = Infinity;
+      let endVal = -Infinity;
+      
+      groupTasks.forEach(t => {
+        if (t.bFinish) {
+          const d = new Date(t.bFinish).getTime();
+          if (!isNaN(d) && d < startVal) startVal = d;
+        }
+        if (t.fFinish) {
+          const d = new Date(t.fFinish).getTime();
+          if (!isNaN(d) && d > endVal) endVal = d;
+        }
+      });
+      
+      if (startVal === Infinity) startVal = new Date("2025-01-01").getTime();
+      if (endVal === -Infinity) endVal = new Date("2026-12-31").getTime();
+      if (endVal < startVal) endVal = startVal + (30 * 24 * 60 * 60 * 1000);
+      
+      const leftPercent = Math.max(0, ((startVal - minTime) / totalRange) * 100);
+      const widthPercent = Math.max(5, ((endVal - startVal) / totalRange) * 100);
+      
+      const completed = groupTasks.filter(t => t.status === 'Complete').length;
+      const total = groupTasks.length;
+      const percent = total > 0 ? (completed / total) * 100 : 0;
+      
+      return {
+        name: scopeName,
+        leftPercent,
+        widthPercent,
+        percent,
+        completed,
+        total,
+        startStr: new Date(startVal).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        endStr: new Date(endVal).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      };
+    });
+  }, [filteredTasks]);
+
+  // Status badges colors helper
+  const renderStatusBadge = (status: string, isDelayed: boolean) => {
+    if (status === 'Complete') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase border border-[#46c08a]/30 bg-[#46c08a]/10 text-[#46c08a] shadow-[0_0_8px_rgba(70,192,138,0.1)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#46c08a] shadow-[0_0_6px_#46c08a]" />
+          Complete
+        </span>
+      );
+    }
+    if (isDelayed) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase border border-[#ff5a5f]/30 bg-[#ff5a5f]/10 text-[#ff5a5f] shadow-[0_0_8px_rgba(255,90,95,0.1)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#ff5a5f] shadow-[0_0_6px_#ff5a5f] animate-pulse" />
+          Delayed
+        </span>
+      );
+    }
+    if (status === 'In Progress') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase border border-[#f1a73a]/30 bg-[#f1a73a]/10 text-[#f1a73a] shadow-[0_0_8px_rgba(241,167,58,0.1)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#f1a73a] shadow-[0_0_6px_#f1a73a]" />
+          Active
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase border border-white/10 bg-white/5 text-[#7e95ab]">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#7e95ab]/50" />
+        Pending
+      </span>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-[#e8e6e3] bg-tech-grid font-sans">
+    <div className="flex-grow flex flex-col bg-[#0b1d2e] text-[#eaf1f8] relative overflow-hidden select-none">
       
-      {/* Subtle Top Alert Bar */}
-      <section className="w-full bg-[#111625] text-[#d4af37] py-2 px-4 text-center border-b border-[#1a2336] relative z-50">
-        <p className="text-[10px] font-serif-lux italic tracking-wide">
-          Portfolio Variance Alert: Total delay accumulated across active developments stands at 953.9 days. Critical mitigation protocols active.
-        </p>
-      </section>
+      {/* Background Floating Pulsing Glow Orbs */}
+      <div className="glow-orb glow-orb-teal"></div>
+      <div className="glow-orb glow-orb-blue"></div>
 
-      {/* Main Container padding matching design layout */}
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
-        
-        {/* ==========================================
-            PERSISTENT HEADER (COMMAND CENTER)
-            ========================================== */}
-        <header className="bg-[#111625]/40 border border-[#1a2336] backdrop-blur-md rounded-2xl p-6 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            {/* Custom SVG Gold Lion Head Logo */}
-            <svg className="w-12 h-12 text-[#d4af37] shrink-0" viewBox="0 0 512 512" fill="currentColor">
+      {/* ==========================================
+          TOP BAR (BRAND HEADER & LIVE CLOCK)
+          ========================================== */}
+      <div className="topbar flex-none h-[9.2vh] min-h-[64px] flex items-center gap-[1.4vw] px-[2.2vw] border-b border-white/10 bg-gradient-to-b from-[#0e2438] to-[#0b1d2e] relative z-40">
+        <div className="brand flex items-center gap-[1.1vw]">
+          {/* Custom Luxury Gold Lion Icon Logo */}
+          <div className="w-[45px] h-[45px] rounded-xl bg-gradient-to-br from-[#16314f] to-[#0e2438] border border-white/15 flex items-center justify-center shadow-lg">
+            <svg className="w-[28px] h-[28px] text-[#34c6a6]" viewBox="0 0 512 512" fill="currentColor">
               <path d="M256,16L220,96h72L256,16z"/>
               <path d="M220,96L140,140l50,60L220,96z"/>
               <path d="M292,96l80,44l-50,60L292,96z"/>
@@ -185,7 +406,6 @@ export default function TechDarkDashboard() {
               <path d="M372,140l100,100l-80,40L372,140z"/>
               <path d="M190,200l-50-60L60,260l130-60z"/>
               <path d="M322,200l50-60l80,120l-130-60z"/>
-              <path d="M190,200l-66,80l66-80l-33-30L190,200z"/>
               <path d="M256,280l-66-80H140l76,140L256,280z"/>
               <path d="M256,280l66-80h50l-76,140L256,280z"/>
               <path d="M216,340l-76-140H60l110,180L216,340z"/>
@@ -193,587 +413,924 @@ export default function TechDarkDashboard() {
               <path d="M256,280L216,340h80L256,280z"/>
               <path d="M216,340l40,120l40-120H216z"/>
             </svg>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-serif-lux font-bold tracking-widest uppercase text-white">
-                  Hassan Allam <span className="font-light italic text-[#d4af37]">Properties</span>
-                </h1>
-                <span className="font-sans text-[7px] tracking-widest font-bold px-2 py-0.5 border border-[#1a2336] text-[#d4af37] uppercase rounded-md">
-                  Control Board
-                </span>
-              </div>
-              <p className="text-slate-400 text-[9px] font-sans tracking-widest uppercase mt-1">
-                Development Schedule and Variance Tracking Command
-              </p>
-            </div>
           </div>
-
-          {/* Navigation Controls */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setActiveTab('portfolio')}
-              className={`px-4 py-2 border text-[10px] font-sans font-bold tracking-widest uppercase transition-all rounded-lg cursor-pointer ${
-                activeTab === 'portfolio' 
-                  ? 'border-[#d4af37] text-[#d4af37] bg-[#d4af37]/5 shadow-[0_0_15px_rgba(212,175,55,0.1)]' 
-                  : 'border-[#1a2336] text-slate-400 hover:text-white hover:border-[#d4af37]/30'
-              }`}
-            >
-              Portfolio Overview
-            </button>
-            <button
-              onClick={() => setActiveTab('drilldown')}
-              className={`px-4 py-2 border text-[10px] font-sans font-bold tracking-widest uppercase transition-all rounded-lg cursor-pointer ${
-                activeTab === 'drilldown' 
-                  ? 'border-[#33b3d4] text-[#33b3d4] bg-[#33b3d4]/5 shadow-[0_0_15px_rgba(51,179,212,0.1)]' 
-                  : 'border-[#1a2336] text-slate-400 hover:text-white hover:border-[#33b3d4]/30'
-              }`}
-            >
-              Project Drill-Down
-            </button>
+          <div className="w-[1px] h-[30px] bg-white/10"></div>
+          <div className="brand-text">
+            <span className="text-[12px] sm:text-[14px] font-semibold text-[#34c6a6] tracking-[.32em] uppercase block">
+              East Projects
+            </span>
+            <b className="text-[10px] text-[#aebfd1] font-normal tracking-[.18em] uppercase block mt-[2px]">
+              Design Programme Control Board
+            </b>
           </div>
-        </header>
+        </div>
+        
+        {/* Toggle Mode Navigation Tab buttons */}
+        <div className="ml-12 flex items-center gap-3">
+          <button 
+            onClick={() => setActiveTab('presentation')}
+            className={`px-4 py-1.5 rounded-lg border text-[10px] font-sans font-bold tracking-widest uppercase transition-all duration-200 cursor-pointer ${
+              activeTab === 'presentation'
+                ? 'border-[#34c6a6] text-[#34c6a6] bg-[#34c6a6]/5 shadow-[0_0_10px_rgba(52,198,166,0.1)]'
+                : 'border-white/10 text-[#7e95ab] hover:text-[#eaf1f8] hover:border-white/20'
+            }`}
+          >
+            Presentation Mode
+          </button>
+          <button 
+            onClick={() => {
+              setActiveTab('interactive');
+              setIsPlaying(false);
+            }}
+            className={`px-4 py-1.5 rounded-lg border text-[10px] font-sans font-bold tracking-widest uppercase transition-all duration-200 cursor-pointer ${
+              activeTab === 'interactive'
+                ? 'border-[#34c6a6] text-[#34c6a6] bg-[#34c6a6]/5 shadow-[0_0_10px_rgba(52,198,166,0.1)]'
+                : 'border-white/10 text-[#7e95ab] hover:text-[#eaf1f8] hover:border-white/20'
+            }`}
+          >
+            Interactive Control Board
+          </button>
+        </div>
 
-        {/* ==========================================
-            TAB 1: PORTFOLIO OVERVIEW
-            ========================================== */}
-        {activeTab === 'portfolio' && (
-          <div className="space-y-8 animate-fadeIn">
+        <div className="hidden lg:flex items-center gap-6 text-[9px] font-mono tracking-widest text-[#7e95ab] border-l border-white/10 pl-6 mr-4">
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#46c08a] shadow-[0_0_8px_#46c08a] animate-pulse" />
+            <span>DB BINDING: ONLINE</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#34c6a6] shadow-[0_0_8px_#34c6a6]" />
+            <span>METRICS: VERIFIED</span>
+          </div>
+        </div>
 
-            {/* DEVELOPMENT LIFECYCLE PIPELINE */}
-            <div className="space-y-4">
-              <h2 className="text-xs font-sans font-bold text-white tracking-widest uppercase">
-                Development Lifecycle Pipeline
-              </h2>
+        <div className="flex-grow"></div>
+        
+        {/* Topbar Clock & Refresh information */}
+        <div className="flex items-center gap-8 relative z-50">
+          <div className="fresh text-right text-[11px] text-[#7e95ab] font-sans leading-none hidden md:block">
+            Last update: Today at <b className="text-[#34c6a6] font-semibold">{refreshTime}</b>
+          </div>
+          
+          <div className="clock text-right leading-none border-l border-white/10 pl-6">
+            <div className="d text-[14px] font-semibold text-[#eaf1f8] tracking-wide">{dateStr}</div>
+            <div className="t text-[11px] text-[#7e95ab] font-mono tracking-widest mt-1 uppercase">{timeStr} UT+3</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ==========================================
+          DASHBOARD MAIN VIEWPORT (SLIDESHOW / GRID)
+          ========================================== */}
+      <div className="flex-grow relative bg-tech-grid z-10">
+        <div className="radar-scan"></div>
+        
+        {/* VIEW 1: PRESENTATION VIEW SLIDEOVER SYSTEM */}
+        {activeTab === 'presentation' && (
+          <div className="absolute inset-0 flex flex-col">
+            <div className="slidewrap flex-grow relative">
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {pipelineStages.map((stage, idx) => {
-                  const stageProjects = projectPhasesGrouping[stage.key] || [];
-                  return (
-                    <div key={idx} className="bg-[#111625]/20 border border-[#1a2336] rounded-2xl p-4 flex flex-col justify-between shadow-2xl min-h-[300px]">
-                      <div>
-                        {/* Header bar inside column */}
-                        <div className="flex justify-between items-center pb-3 border-b border-[#1a2336]">
-                          <span className="text-[10px] font-sans font-bold text-slate-400 uppercase tracking-widest">{stage.name}</span>
-                          <span className="bg-[#111625] border border-[#1a2336] text-[#d4af37] text-[10px] font-mono font-bold px-2 py-0.5 rounded-md">
-                            {stageProjects.length}
-                          </span>
+              {/* SLIDE 0: PORTFOLIO PROGRAMME OVERVIEW */}
+              <div className={`slide ${slideIndex === 0 ? 'on' : ''}`}>
+                <div className="slide-head flex items-end gap-[1.2vw] mb-[1.4vh]">
+                  <span className="tag text-[12px] tracking-[.26em] text-[#34c6a6] font-semibold uppercase">Hassan Allam Properties</span>
+                  <h1 className="text-[26px] md:text-[34px] font-bold tracking-tight text-white leading-none">Portfolio Programme Summary</h1>
+                  <span className="pagebadge text-[11px] font-bold text-[#34c6a6] bg-[#34c6a6]/12 border border-[#34c6a6]/38 px-[0.8vw] py-[0.3vh] rounded-full self-center">Portfolio Overview</span>
+                </div>
+
+                {/* Portfolio level KPIs */}
+                <div className="kpis p">
+                  <div className="donut glass-panel">
+                    <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
+                      <svg className="w-full h-full" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="42" className="stroke-white/10" strokeWidth="6" fill="transparent" />
+                        <circle 
+                          cx="50" 
+                          cy="50" 
+                          r="42" 
+                          className="stroke-[#34c6a6] progress-ring-circle" 
+                          strokeWidth="6" 
+                          fill="transparent" 
+                          strokeDasharray="263.89" 
+                          strokeDashoffset={263.89 - (263.89 * portfolioStats.completionPercent) / 100}
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-white font-mono">{portfolioStats.completionPercent}%</span>
+                    </div>
+                    <div className="meta">
+                      <div className="lab text-[10px] tracking-[.16em] uppercase text-[#7e95ab]">Overall Completion</div>
+                      <div className="big text-[22px] font-bold mt-[0.3vh] text-white font-serif-lux">
+                        {portfolioStats.completed} / {portfolioStats.total} <small className="text-[12px] text-[#aebfd1] font-semibold font-sans">Tasks</small>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="kpi">
+                    <div className="lab">Total Scope</div>
+                    <div className="val text-white font-serif-lux">{portfolioStats.total}</div>
+                    <div className="w-full h-5 mt-1 overflow-hidden opacity-50">
+                      <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="glow-teal" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#34c6a6" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="#34c6a6" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,25 T20,24 T40,24 T60,25 T80,24 T100,24" fill="none" stroke="#34c6a6" strokeWidth="1.5" />
+                        <path d="M0,25 T20,24 T40,24 T60,25 T80,24 T100,24 L100,30 L0,30 Z" fill="url(#glow-teal)" />
+                      </svg>
+                    </div>
+                    <div className="foot mt-1">All active programme stages</div>
+                  </div>
+
+                  <div className="kpi ok">
+                    <div className="lab">Completed</div>
+                    <div className="val text-[#46c08a] font-serif-lux">{portfolioStats.completed}</div>
+                    <div className="w-full h-5 mt-1 overflow-hidden opacity-50">
+                      <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="glow-green" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#46c08a" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="#46c08a" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,25 Q20,22 40,18 T80,10 T100,5" fill="none" stroke="#46c08a" strokeWidth="1.5" />
+                        <path d="M0,25 Q20,22 40,18 T80,10 T100,5 L100,30 L0,30 Z" fill="url(#glow-green)" />
+                      </svg>
+                    </div>
+                    <div className="foot mt-1">Tasks executed successfully</div>
+                  </div>
+
+                  <div className="kpi">
+                    <div className="lab">In Progress</div>
+                    <div className="val text-[#f1a73a] font-serif-lux">{portfolioStats.inProgress}</div>
+                    <div className="w-full h-5 mt-1 overflow-hidden opacity-50">
+                      <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="glow-amber" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#f1a73a" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="#f1a73a" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,20 Q15,10 30,22 T60,12 T90,18 T100,10" fill="none" stroke="#f1a73a" strokeWidth="1.5" />
+                        <path d="M0,20 Q15,10 30,22 T60,12 T90,18 T100,10 L100,30 L0,30 Z" fill="url(#glow-amber)" />
+                      </svg>
+                    </div>
+                    <div className="foot mt-1">Currently active design stages</div>
+                  </div>
+
+                  <div className="kpi alarm">
+                    <div className="lab">Variance Delays</div>
+                    <div className="val text-[#ff5a5f] font-serif-lux">+{portfolioStats.totalDelayDays}d</div>
+                    <div className="w-full h-5 mt-1 overflow-hidden opacity-50">
+                      <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="glow-red" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#ff5a5f" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="#ff5a5f" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,15 T30,17 T60,15 T80,8 T100,25" fill="none" stroke="#ff5a5f" strokeWidth="1.5" />
+                        <path d="M0,15 T30,17 T60,15 T80,8 T100,25 L100,30 L0,30 Z" fill="url(#glow-red)" />
+                      </svg>
+                    </div>
+                    <div className="foot mt-1">Across <b className="text-white">{portfolioStats.delayed}</b> delayed streams</div>
+                  </div>
+                </div>
+
+                {/* Split Summary Layout: Left Table (3/5), Right Scope distribution stacked bar graph (2/5) */}
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 flex-grow min-h-[30vh] overflow-hidden">
+                  
+                  {/* Left Side: Summary table of Phase progress */}
+                  <div className="lg:col-span-3 flex flex-col sumtable">
+                    <div className="bh font-bold text-[14px] text-white flex items-center justify-between">
+                      <span>Programme Breakdown by Phase</span>
+                      <span className="text-[11px] text-[#7e95ab] font-mono font-normal">Active items tracked</span>
+                    </div>
+                    <div className="tablewrap flex-grow">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Project Phase</th>
+                            <th>Scope Completion</th>
+                            <th style={{ textAlign: 'right' }}>Total Scope</th>
+                            <th style={{ textAlign: 'right' }}>Completed</th>
+                            <th style={{ textAlign: 'right' }}>Variance</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {phaseStats.map((phase, idx) => (
+                            <tr key={idx} className="hover:bg-[#16314f]/30 transition-colors">
+                              <td>
+                                <div className="proj">
+                                  <span className={`dot ${phase.healthColor === 'r' ? 'r' : phase.healthColor === 'a' ? 'a' : 'g'}`}></span>
+                                  <span className="text-white font-semibold">{phase.name}</span>
+                                </div>
+                              </td>
+                              <td>
+                                <div className="flex items-center gap-3">
+                                  <div className="bar flex-grow max-w-[150px]">
+                                    <i style={{ width: `${phase.completionPercent}%` }}></i>
+                                  </div>
+                                  <span className="text-[11px] font-mono text-[#aebfd1]">{phase.completionPercent}%</span>
+                                </div>
+                              </td>
+                              <td className="num font-mono">{phase.total}</td>
+                              <td className="num font-mono text-[#46c08a]">{phase.completed}</td>
+                              <td className="num var text-right font-mono">
+                                {phase.totalDelayDays > 0 ? (
+                                  <span className="late text-[#ff5a5f] font-semibold">+{phase.totalDelayDays}d</span>
+                                ) : (
+                                  <span className="early text-[#46c08a] font-semibold">On Time</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                          
+                          {/* Total Portfolio row */}
+                          <tr className="portfolio-row">
+                            <td>
+                              <div className="proj">
+                                <span className="dot g"></span>
+                                <span className="text-white font-bold">TOTAL PORTFOLIO</span>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="flex items-center gap-3">
+                                <div className="bar flex-grow max-w-[150px]">
+                                  <i style={{ width: `${portfolioStats.completionPercent}%` }}></i>
+                                </div>
+                                <span className="text-[12px] font-bold font-mono text-white">{portfolioStats.completionPercent}%</span>
+                              </div>
+                            </td>
+                            <td className="num font-bold font-mono">{portfolioStats.total}</td>
+                            <td className="num font-bold font-mono text-[#46c08a]">{portfolioStats.completed}</td>
+                            <td className="num var text-right font-mono font-bold">
+                              {portfolioStats.totalDelayDays > 0 ? (
+                                <span className="late text-[#ff5a5f]">+{portfolioStats.totalDelayDays}d</span>
+                              ) : (
+                                <span className="early text-[#46c08a]">On Time</span>
+                              )}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Right Side: Stacked bar chart representing tasks breakdown by Scope */}
+                  <div className="lg:col-span-2 flex flex-col sumtable p-5">
+                    <div className="bh font-bold text-[14px] text-white flex items-center justify-between pb-3 mb-3 border-b border-white/10">
+                      <span>Scope Distribution Chart</span>
+                      <span className="text-[10px] text-[#7e95ab] uppercase font-bold tracking-widest font-sans">Progress by Domain</span>
+                    </div>
+                    <div className="space-y-4 flex-grow overflow-y-auto pr-1 scrollable-y">
+                      {scopeBreakdown.map((scope, idx) => (
+                        <div key={idx} className="space-y-1.5">
+                          <div className="flex justify-between items-center text-[11px]">
+                            <span className="text-white font-semibold">{scope.name}</span>
+                            <span className="text-[#aebfd1] font-mono">{scope.completed} / {scope.total} <small className="text-[#7e95ab] font-sans">Done</small></span>
+                          </div>
+                          {/* Stacked bar */}
+                          <div className="w-full h-3 rounded-full bg-[#0b1d2e] overflow-hidden flex border border-white/5 relative">
+                            {scope.completedPercent > 0 && (
+                              <div 
+                                style={{ width: `${scope.completedPercent}%` }} 
+                                className="h-full bg-gradient-to-r from-[#1f7a5e] to-[#34c6a6] transition-all duration-500 relative" 
+                                title={`Complete: ${scope.completed}`}
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 w-full h-full animate-[pulse_2s_infinite]" />
+                              </div>
+                            )}
+                            {scope.inProgressPercent > 0 && (
+                              <div 
+                                style={{ width: `${scope.inProgressPercent}%` }} 
+                                className="h-full bg-[#f1a73a] transition-all duration-500" 
+                                title={`In Progress: ${scope.inProgress}`}
+                              />
+                            )}
+                            {scope.notStartedPercent > 0 && (
+                              <div 
+                                style={{ width: `${scope.notStartedPercent}%` }} 
+                                className="h-full bg-white/5 transition-all duration-500" 
+                                title={`Not Started: ${scope.notStarted}`}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              {/* SLIDES 1-3: PROJECT DETAILS FOR THE 3 PHASES */}
+              {phaseStats.map((phase, pIdx) => {
+                const sIdx = pIdx + 1;
+                const scopesList = phaseScopes[pIdx] || [];
+                
+                // Calculate critical upcoming milestones (top 5 sorted chronologically)
+                const upcomingMilestones = phase.tasks
+                  .filter(t => t.status !== 'Complete' && t.fFinish)
+                  .sort((a, b) => {
+                    const da = new Date(a.fFinish!).getTime();
+                    const db = new Date(b.fFinish!).getTime();
+                    return da - db;
+                  })
+                  .slice(0, 5);
+
+                // Calculate active delay log blockers
+                const delayedMilestones = phase.tasks
+                  .filter(t => t.status !== 'Complete' && getDelayDays(t.bFinish, t.fFinish) > 0)
+                  .sort((a, b) => {
+                    const delayA = getDelayDays(a.bFinish, a.fFinish);
+                    const delayB = getDelayDays(b.bFinish, b.fFinish);
+                    return delayB - delayA;
+                  });
+
+                return (
+                  <div key={pIdx} className={`slide ${slideIndex === sIdx ? 'on' : ''}`}>
+                    <div className="slide-head flex items-end gap-[1.2vw] mb-[1.4vh] flex-none">
+                      <span className="tag text-[12px] tracking-[.26em] text-[#34c6a6] font-semibold uppercase">Hassan Allam Properties</span>
+                      <h1 className="text-[26px] md:text-[34px] font-bold tracking-tight text-white leading-none">{phase.name}</h1>
+                      <span className="pagebadge text-[11px] font-bold text-[#34c6a6] bg-[#34c6a6]/12 border border-[#34c6a6]/38 px-[0.8vw] py-[0.3vh] rounded-full self-center">Phase Control Board</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow overflow-hidden min-h-[30vh]">
+                      
+                      {/* Column 1: Scope Progress List */}
+                      <div className="flex flex-col sumtable p-4 h-full">
+                        <div className="bh font-bold text-[14px] text-white flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
+                          <span>Scope Progress Breakdown</span>
+                          <span className="text-[10px] text-[#7e95ab] uppercase font-bold tracking-widest font-sans">Domain Health</span>
+                        </div>
+                        
+                        {/* Overall health card block */}
+                        <div className="flex items-center gap-4 bg-white/5 border border-white/5 rounded-2xl p-4 mb-4 flex-none">
+                          <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
+                            <svg className="w-full h-full" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="42" className="stroke-white/10" strokeWidth="6" fill="transparent" />
+                              <circle 
+                                cx="50" 
+                                cy="50" 
+                                r="42" 
+                                className="stroke-[#34c6a6] progress-ring-circle" 
+                                strokeWidth="6" 
+                                fill="transparent" 
+                                strokeDasharray="263.89" 
+                                strokeDashoffset={263.89 - (263.89 * phase.completionPercent) / 100}
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                            <span className="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-white font-mono">{phase.completionPercent}%</span>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[16px] font-bold text-white font-serif-lux">{phase.completed} / {phase.total} Complete</div>
+                            <div className="text-[10px] text-[#7e95ab] mt-0.5">
+                              {phase.delayed > 0 ? (
+                                <span>Accumulated delay: <b className="text-[#ff5a5f]">+{phase.totalDelayDays}d</b> ({phase.delayed} tasks)</span>
+                              ) : (
+                                <span>All active milestones on track</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
 
-                        {/* List cards in stage */}
-                        <div className="mt-4 space-y-3">
-                          {stageProjects.length > 0 ? (
-                            stageProjects.map(proj => (
-                              <div 
-                                key={proj.id} 
-                                onClick={() => {
-                                  setSelectedProjectId(proj.id);
-                                  setActiveTab('drilldown');
-                                }}
-                                className="p-4 bg-[#111625]/80 border border-[#1a2336] rounded-xl hover:border-[#d4af37]/40 dark:hover:border-[#d4af37]/45 transition-all cursor-pointer group flex items-center justify-between shadow-lg glow-gold-hover"
-                              >
-                                <div>
-                                  <span className="text-xs font-serif-lux font-bold text-white group-hover:text-[#d4af37] transition-colors">{proj.name}</span>
-                                  <span className="text-[9px] text-slate-500 block mt-0.5 font-sans uppercase font-bold tracking-wider">{proj.progress}% Done</span>
+                        {/* List of Scope progress bars */}
+                        <div className="space-y-4 flex-grow overflow-y-auto pr-1 scrollable-y">
+                          {scopesList.map((scope, sIdx) => (
+                            <div key={sIdx} className="space-y-1.5">
+                              <div className="flex justify-between items-center text-[11px]">
+                                <span className="text-white font-semibold">{scope.name}</span>
+                                <span className="text-[#aebfd1] font-mono">{Math.round(scope.percent)}% <small className="text-[#7e95ab]">({scope.completed}/{scope.total})</small></span>
+                              </div>
+                              <div className="w-full h-2 rounded-full bg-[#0b1d2e] overflow-hidden flex border border-white/5 relative">
+                                <div 
+                                  style={{ width: `${scope.percent}%` }}
+                                  className="h-full bg-gradient-to-r from-[#1f7a5e] to-[#34c6a6] relative"
+                                >
+                                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 w-full h-full animate-[pulse_2s_infinite]" />
                                 </div>
-                                <span className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded-md ${proj.delay > 0 ? 'text-rose-400 bg-rose-950/20 border border-rose-900/30' : 'text-[#33b3d4] bg-[#33b3d4]/5 border border-[#33b3d4]/20'}`}>
-                                  {proj.delay > 0 ? `+${proj.delay}d` : 'On Time'}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Column 2: Critical Upcoming Milestones */}
+                      <div className="flex flex-col sumtable p-4 h-full">
+                        <div className="bh font-bold text-[14px] text-white flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
+                          <span>Critical Upcoming Milestones</span>
+                          <span className="text-[10px] text-[#7e95ab] uppercase font-bold tracking-widest font-sans">Next Steps</span>
+                        </div>
+                        
+                        <div className="space-y-3.5 flex-grow overflow-y-auto pr-1 scrollable-y">
+                          {upcomingMilestones.map((t, idx) => (
+                            <div key={idx} className="bg-white/5 border border-white/5 hover:border-white/10 transition-colors rounded-xl p-3 flex items-center gap-3">
+                              <div className="w-7 h-7 rounded-lg bg-[#f1a73a]/10 border border-[#f1a73a]/25 flex items-center justify-center shrink-0">
+                                <Clock size={14} className="text-[#f1a73a]" />
+                              </div>
+                              <div className="min-w-0 flex-grow text-left">
+                                <span className="text-[9px] font-bold text-[#7e95ab] uppercase tracking-wider block">{t.scope}</span>
+                                <span className="font-semibold text-white block text-[11px] truncate mt-0.5" title={t.stage}>{t.stage}</span>
+                                <span className="text-[10px] font-mono text-[#aebfd1] block mt-0.5 flex items-center gap-1">
+                                  <Calendar size={11} className="text-[#34c6a6]" />
+                                  Due: {t.fFinish}
                                 </span>
                               </div>
-                            ))
-                          ) : (
-                            <p className="text-[10px] text-slate-500 text-center py-12">No developments active</p>
+                              <div className="text-[9px] font-bold text-[#f1a73a] px-2 py-0.5 border border-[#f1a73a]/20 bg-[#f1a73a]/5 rounded-md shrink-0">
+                                Active
+                              </div>
+                            </div>
+                          ))}
+                          {upcomingMilestones.length === 0 && (
+                            <div className="flex flex-col items-center justify-center text-center py-20 text-[#7e95ab]">
+                              <CheckCircle2 size={32} className="text-[#46c08a] mb-3 opacity-60" />
+                              <span className="text-xs">No pending milestones in this phase.</span>
+                            </div>
                           )}
                         </div>
                       </div>
+
+                      {/* Column 3: Blocker Alerts / Schedule Variance Log */}
+                      <div className="flex flex-col sumtable p-4 h-full">
+                        <div className="bh font-bold text-[14px] text-white flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
+                          <span>Blocker & Delay Alerts</span>
+                          <span className="text-[10px] text-[#ff5a5f] uppercase font-bold tracking-widest font-sans flex items-center gap-1">
+                            <AlertTriangle size={11} className="animate-pulse" />
+                            Variance
+                          </span>
+                        </div>
+                        
+                        <div className="space-y-3.5 flex-grow overflow-y-auto pr-1 scrollable-y">
+                          {delayedMilestones.map((t, idx) => {
+                            const delay = getDelayDays(t.bFinish, t.fFinish);
+                            return (
+                              <div key={idx} className="bg-[#ff5a5f]/5 border border-[#ff5a5f]/15 hover:border-[#ff5a5f]/25 transition-colors rounded-xl p-3 flex items-start gap-3">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#ff5a5f] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[9px] shrink-0 mt-0.5">
+                                  {t.owner ? t.owner.split('/').map(w => w.trim().charAt(0)).join('') : '—'}
+                                </div>
+                                <div className="min-w-0 flex-grow text-left">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <span className="text-[9px] font-bold text-[#ff5a5f] uppercase tracking-wider block">{t.scope}</span>
+                                    <span className="text-[9px] font-bold text-[#ff5a5f] px-1.5 py-0.5 border border-[#ff5a5f]/30 bg-[#ff5a5f]/10 rounded-md shrink-0 font-mono leading-none">
+                                      +{delay}d delay
+                                    </span>
+                                  </div>
+                                  <span className="font-semibold text-white block text-[11px] truncate mt-0.5" title={t.stage}>{t.stage}</span>
+                                  <span className="text-[9px] text-[#7e95ab] block mt-1">
+                                    Owner: <b className="text-[#aebfd1] font-semibold">{t.owner || '—'}</b> | Agent: <b className="text-[#aebfd1] font-semibold">{t.consultant || '—'}</b>
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {delayedMilestones.length === 0 && (
+                            <div className="flex flex-col items-center justify-center text-center py-20 text-[#7e95ab] h-full">
+                              <CheckCircle2 size={32} className="text-[#46c08a] mb-3 opacity-60 animate-bounce" />
+                              <span className="text-xs text-[#46c08a] font-bold">On Schedule</span>
+                              <span className="text-[10px] text-[#7e95ab] mt-1">All milestones in this phase are tracking to target.</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
+
             </div>
+          </div>
+        )}
 
-            {/* KPI SECTION */}
-            <div className="space-y-4">
-              <h2 className="text-xs font-sans font-bold text-white tracking-widest uppercase">
-                KPI
-              </h2>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* VIEW 2: INTERACTIVE DASHBOARD VIEW (DRILL-DOWN & GANTT SEARCH) */}
+        {activeTab === 'interactive' && (
+          <div className="absolute inset-0 flex flex-col p-6 space-y-6 scrollable-y">
+            
+            {/* SEARCH / FILTERS BAR */}
+            <div className="flex-none p-4 rounded-xl bg-[#13293e]/40 border border-white/5 backdrop-blur-md flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="relative min-w-[240px]">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7e95ab]" />
+                  <input 
+                    type="text" 
+                    placeholder="Search stage owner, consultant..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 pr-4 py-1.5 w-full text-xs rounded-lg border border-white/10 bg-[#0b1d2e] text-[#eaf1f8] focus:outline-none focus:border-[#34c6a6] transition-colors"
+                  />
+                </div>
                 
-                {/* KPI Card 1: Avg Completion */}
-                <div className="bg-[#111625]/40 border border-[#1a2336] rounded-2xl p-6 shadow-2xl flex flex-col items-center justify-center text-center">
-                  <span className="text-[9px] font-sans font-bold text-slate-400 uppercase tracking-widest mb-4">Avg Completion</span>
-                  
-                  {/* Circular SVG progress gauge */}
-                  <div className="relative w-24 h-24 flex items-center justify-center">
-                    <svg className="w-full h-full" viewBox="0 0 100 100">
-                      <circle 
-                        cx="50" 
-                        cy="50" 
-                        r={radius} 
-                        className="stroke-slate-800" 
-                        strokeWidth="8" 
-                        fill="transparent" 
-                      />
-                      <circle 
-                        cx="50" 
-                        cy="50" 
-                        r={radius} 
-                        className="stroke-[#d4af37] progress-ring-circle drop-shadow-[0_0_4px_#d4af37]" 
-                        strokeWidth="8" 
-                        fill="transparent" 
-                        strokeDasharray={circ} 
-                        strokeDashoffset={avgCompletionDash} 
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span className="absolute text-sm font-sans font-bold text-[#d4af37]">
-                      {portfolioStats.avgCompletion}%
-                    </span>
-                  </div>
+                {/* Phase Filter */}
+                <div className="flex items-center gap-1.5 border border-white/10 bg-[#0b1d2e] rounded-lg px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest font-sans">
+                  <Filter size={11} className="text-[#34c6a6]" />
+                  <select 
+                    value={selectedPhase}
+                    onChange={(e) => setSelectedPhase(e.target.value)}
+                    className="bg-transparent focus:outline-none cursor-pointer font-bold text-[#aebfd1] text-[10px]"
+                  >
+                    <option value="All" className="text-slate-800 bg-white">All Phases</option>
+                    {PHASES.map((p, idx) => (
+                      <option key={idx} value={p} className="text-slate-800 bg-white">{p}</option>
+                    ))}
+                  </select>
                 </div>
 
-                {/* KPI Card 2: Delayed Projects */}
-                <div className="bg-[#111625]/40 border border-[#1a2336] rounded-2xl p-6 shadow-2xl flex flex-col items-center justify-center text-center">
-                  <span className="text-[9px] font-sans font-bold text-slate-400 uppercase tracking-widest mb-4">Delayed Projects</span>
-                  
-                  {/* Circular SVG progress gauge */}
-                  <div className="relative w-24 h-24 flex items-center justify-center">
-                    <svg className="w-full h-full" viewBox="0 0 100 100">
-                      <circle 
-                        cx="50" 
-                        cy="50" 
-                        r={radius} 
-                        className="stroke-slate-800" 
-                        strokeWidth="8" 
-                        fill="transparent" 
-                      />
-                      <circle 
-                        cx="50" 
-                        cy="50" 
-                        r={radius} 
-                        className="stroke-rose-600 progress-ring-circle drop-shadow-[0_0_4px_#ef4444]" 
-                        strokeWidth="8" 
-                        fill="transparent" 
-                        strokeDasharray={circ} 
-                        strokeDashoffset={delayedDash} 
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                    <span className="absolute text-sm font-sans font-bold text-rose-500">
-                      {portfolioStats.delayed} / {portfolioStats.totalProjects}
-                    </span>
-                  </div>
-                  <span className="text-[8px] font-sans font-bold text-rose-500 tracking-wider uppercase mt-4 block">Requires Rescheduling</span>
+                {/* Scope Filter */}
+                <div className="flex items-center gap-1.5 border border-white/10 bg-[#0b1d2e] rounded-lg px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest font-sans">
+                  <Filter size={11} className="text-[#34c6a6]" />
+                  <select 
+                    value={selectedScope}
+                    onChange={(e) => setSelectedScope(e.target.value)}
+                    className="bg-transparent focus:outline-none cursor-pointer font-bold text-[#aebfd1] text-[10px]"
+                  >
+                    <option value="All" className="text-slate-800 bg-white">All Scopes</option>
+                    {allScopes.map((s, idx) => (
+                      <option key={idx} value={s} className="text-slate-800 bg-white">{s}</option>
+                    ))}
+                  </select>
                 </div>
 
-                {/* KPI Card 3: On Track */}
-                <div className="bg-[#111625]/40 border border-[#1a2336] rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-[9px] font-sans font-bold text-slate-400 uppercase tracking-widest">On Track</span>
-                      <h3 className="text-3xl font-sans font-bold text-[#33b3d4] mt-2">{portfolioStats.onTrack}</h3>
-                    </div>
-                  </div>
-                  
-                  {/* SVG Wave Sparkline */}
-                  <svg className="w-full h-12 mt-4" viewBox="0 0 200 50">
-                    <defs>
-                      <linearGradient id="tealGlow" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#33b3d4" stopOpacity="0.2"/>
-                        <stop offset="100%" stopColor="#33b3d4" stopOpacity="0"/>
-                      </linearGradient>
-                    </defs>
-                    <path d="M 0,35 C 20,20 40,40 60,15 C 80,5 100,45 120,25 C 140,5 160,35 200,10" fill="none" stroke="#33b3d4" strokeWidth="2.5" className="drop-shadow-[0_0_3px_#33b3d4]" />
-                    <path d="M 0,35 C 20,20 40,40 60,15 C 80,5 100,45 120,25 C 140,5 160,35 200,10 L 200,50 L 0,50 Z" fill="url(#tealGlow)" />
-                  </svg>
+                {/* Status Filter */}
+                <div className="flex items-center gap-1.5 border border-white/10 bg-[#0b1d2e] rounded-lg px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest font-sans">
+                  <Filter size={11} className="text-[#34c6a6]" />
+                  <select 
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                    className="bg-transparent focus:outline-none cursor-pointer font-bold text-[#aebfd1] text-[10px]"
+                  >
+                    <option value="All" className="text-slate-800 bg-white">All Statuses</option>
+                    <option value="Complete" className="text-slate-800 bg-white">Complete</option>
+                    <option value="In Progress" className="text-slate-800 bg-white">In Progress</option>
+                    <option value="Not Started" className="text-slate-800 bg-white">Not Started</option>
+                    <option value="Delayed" className="text-slate-800 bg-white">Delayed Only</option>
+                  </select>
                 </div>
+              </div>
 
-                {/* KPI Card 4: Open Tasks */}
-                <div className="bg-[#111625]/40 border border-[#1a2336] rounded-2xl p-6 shadow-2xl flex flex-col justify-between">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <span className="text-[9px] font-sans font-bold text-slate-400 uppercase tracking-widest">Open Tasks</span>
-                      <h3 className="text-3xl font-sans font-bold text-rose-500 mt-2">{portfolioStats.totalOpenTasks}</h3>
-                    </div>
-                  </div>
-                  
-                  {/* SVG Wave Sparkline */}
-                  <svg className="w-full h-12 mt-4" viewBox="0 0 200 50">
-                    <defs>
-                      <linearGradient id="roseGlow" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#ef4444" stopOpacity="0.2"/>
-                        <stop offset="100%" stopColor="#ef4444" stopOpacity="0"/>
-                      </linearGradient>
-                    </defs>
-                    <path d="M 0,20 C 30,45 60,10 90,35 C 120,45 150,15 200,25" fill="none" stroke="#ef4444" strokeWidth="2.5" className="drop-shadow-[0_0_3px_#ef4444]" />
-                    <path d="M 0,20 C 30,45 60,10 90,35 C 120,45 150,15 200,25 L 200,50 L 0,50 Z" fill="url(#roseGlow)" />
-                  </svg>
-                  <span className="text-[8px] font-sans font-bold text-rose-500 tracking-wider uppercase mt-2 block">
-                    {portfolioStats.overdueTasks} Overdue Tasks ({Math.round(portfolioStats.overdueTasks/portfolioStats.totalOpenTasks * 100)}%)
-                  </span>
-                </div>
-
+              <div className="text-[11px] text-[#7e95ab]">
+                Filtered: <b className="text-white">{filteredTasks.length}</b> / {tasks.length} tasks
               </div>
             </div>
 
-            {/* PROJECT MASTER SCHEDULE TABLE */}
-            <div className="space-y-4">
-              <h2 className="text-xs font-sans font-bold text-white tracking-widest uppercase">
-                Project Master Schedule
-              </h2>
+            {/* NEW GRAPH: VISUAL GANTT SCOPE TIMELINE (AGGREGATED RECORD SPARKLINE GRID) */}
+            {interactiveTimeline.length > 0 && (
+              <div className="glass-panel rounded-2xl p-5 flex-none shadow-lg relative overflow-hidden">
+                <div className="text-[11px] font-bold text-white uppercase tracking-wider mb-4 flex items-center justify-between border-b border-white/5 pb-2">
+                  <span>Visual Gantt Scope Timeline (2024 – 2027)</span>
+                  <span className="text-[9px] text-[#7e95ab] font-mono font-normal">Active milestones grouped by Scope</span>
+                </div>
+                
+                <div className="space-y-3 relative pt-6">
+                  {/* Timeline Time Marker Labels */}
+                  <div className="absolute top-0 left-[140px] right-0 flex justify-between text-[8px] font-mono text-[#7e95ab] pointer-events-none px-1">
+                    <span>Jan 2024</span>
+                    <span>Jan 2025</span>
+                    <span>Jan 2026</span>
+                    <span>Jul 2027</span>
+                  </div>
 
-              <div className="bg-[#111625]/40 border border-[#1a2336] rounded-2xl shadow-2xl overflow-hidden">
-                {/* Search / Filter toolbar */}
-                <div className="px-6 py-5 border-b border-[#1a2336] bg-[#111625]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Schedule Matrix</h3>
-                    <p className="text-[9px] text-slate-400 tracking-widest font-sans uppercase mt-0.5">Live schedule metrics overview</p>
+                  {/* Vertical Year Grid Lines */}
+                  <div className="absolute top-6 bottom-0 left-[140px] right-0 pointer-events-none z-0">
+                    <div className="absolute left-[28.57%] top-0 bottom-0 w-px border-dashed border-l border-white/[0.08]" />
+                    <div className="absolute left-[57.14%] top-0 bottom-0 w-px border-dashed border-l border-white/[0.08]" />
+                    <div className="absolute left-[85.71%] top-0 bottom-0 w-px border-dashed border-l border-white/[0.08]" />
                   </div>
                   
-                  <div className="flex items-center gap-3">
-                    <div className="relative min-w-[200px]">
-                      <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input 
-                        type="text" 
-                        placeholder="Search property..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-9 pr-4 py-2 w-full text-xs rounded-lg border border-[#1a2336] bg-[#0c101b] text-[#e8e6e3] focus:outline-none focus:border-[#d4af37] transition-colors"
-                      />
+                  {interactiveTimeline.map((item, idx) => (
+                    <div key={idx} className="relative flex items-center h-6 group/bar">
+                      {/* Left: Label */}
+                      <div className="w-[130px] text-[10px] text-[#aebfd1] truncate pr-2 shrink-0 font-semibold uppercase tracking-wider">
+                        {item.name}
+                      </div>
+                      
+                      {/* Center: Progress bar track */}
+                      <div className="flex-1 h-3.5 bg-[#0b1d2e] rounded-full border border-white/5 relative overflow-hidden">
+                        {/* Floating visual scope block */}
+                        <div 
+                          style={{ left: `${item.leftPercent}%`, width: `${item.widthPercent}%` }}
+                          className="absolute h-full rounded-full bg-white/5 border border-white/10 group-hover/bar:border-white/20 transition-all flex overflow-hidden"
+                        >
+                          {/* Inner filled progress bar representing completion percentage */}
+                          <div 
+                            style={{ width: `${item.percent}%` }}
+                            className="h-full bg-gradient-to-r from-[#1f7a5e] to-[#34c6a6] relative"
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 w-full h-full animate-[pulse_2s_infinite]" />
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Right: Date duration tooltip on hover */}
+                      <div className="absolute right-3 text-[9px] text-[#7e95ab] opacity-0 group-hover/bar:opacity-100 transition-opacity font-mono">
+                        {item.startStr} – {item.endStr} | {Math.round(item.percent)}% Done ({item.completed}/{item.total})
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 border border-[#1a2336] bg-[#0c101b] rounded-lg px-3 py-1.5 text-[9px] uppercase font-bold tracking-widest font-sans">
-                      <Filter size={11} className="text-[#d4af37]" />
-                      <select 
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="bg-transparent focus:outline-none cursor-pointer font-bold text-slate-400"
-                      >
-                        <option value="All">All Statuses</option>
-                        <option value="On Track">On Track</option>
-                        <option value="Delayed">Delayed</option>
-                        <option value="Commercial on hold">Commercial on hold</option>
-                      </select>
-                    </div>
-                  </div>
+                  ))}
                 </div>
+              </div>
+            )}
 
-                {/* Table Layout */}
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse text-sm">
-                    <thead>
-                      <tr className="border-b border-[#1a2336] bg-[#111625]/50 text-slate-500 uppercase tracking-widest text-[9px] font-bold">
-                        <th className="px-6 py-4">Project</th>
-                        <th className="px-6 py-4">Project</th>
-                        <th className="px-6 py-4">Done%</th>
-                        <th className="px-6 py-4">Status</th>
-                        <th className="px-6 py-4">Priority</th>
-                        <th className="px-6 py-4">Date</th>
-                        <th className="px-6 py-4 text-right">Actions</th>
+            {/* SPLIT GRID WORKSPACE */}
+            <div className="flex-grow grid grid-cols-1 lg:grid-cols-3 gap-6 items-start overflow-hidden">
+              
+              {/* Task table list (Left Side) */}
+              <div className="lg:col-span-2 flex flex-col bg-[#13293e] border border-white/10 rounded-2xl shadow-xl overflow-hidden h-[45vh]">
+                <div className="p-4 border-b border-white/10 flex items-center justify-between flex-none">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                    <ListTodo size={14} className="text-[#34c6a6]" />
+                    Interactive Work Streams
+                  </h3>
+                  <span className="text-[10px] text-[#7e95ab]">Click a row to load visual detail card</span>
+                </div>
+                
+                <div className="tablewrap flex-grow overflow-y-auto">
+                  <table className="text-xs">
+                    <thead className="text-[9px]">
+                      <tr>
+                        <th className="idx">#</th>
+                        <th>Stage / Milestone</th>
+                        <th>Scope</th>
+                        <th>Owner</th>
+                        <th>Consultant</th>
+                        <th>Baseline</th>
+                        <th>Forecast</th>
+                        <th>Status</th>
+                        <th style={{ textAlign: 'right' }}>Variance</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#1a2336]">
-                      {filteredProjects.map((project) => (
-                        <tr 
-                          key={project.id} 
-                          onClick={() => {
-                            setSelectedProjectId(project.id);
-                            setActiveTab('drilldown');
-                          }}
-                          className="hover:bg-[#151d2f]/40 transition-colors cursor-pointer group/row"
-                        >
-                          {/* Project Name (Georgia Font) */}
-                          <td className="px-6 py-5 font-serif-lux font-bold text-white group-hover/row:text-[#d4af37] transition-colors">
-                            {project.name}
-                          </td>
-                          {/* Phase */}
-                          <td className="px-6 py-5">
-                            <span className="text-[10px] font-sans font-bold tracking-wider uppercase text-[#d4af37]">
-                              {project.phase}
-                            </span>
-                          </td>
-                          {/* Progress with gold horizontal line */}
-                          <td className="px-6 py-5">
-                            <div className="flex items-center gap-3">
-                              <span className="text-slate-200 font-mono text-xs w-10">{project.progress}%</span>
-                              <div className="w-20 bg-slate-800 h-0.5 rounded-none overflow-hidden shrink-0">
-                                <div className="bg-[#d4af37] h-full shadow-[0_0_4px_#d4af37]" style={{ width: `${project.progress}%` }}></div>
-                              </div>
-                            </div>
-                          </td>
-                          {/* Status badge */}
-                          <td className="px-6 py-5">
-                            <span className={`px-2.5 py-0.5 rounded-md text-[9px] font-bold font-sans tracking-wider uppercase border ${getStatusColor(project.status)}`}>
-                              {project.status}
-                            </span>
-                          </td>
-                          {/* Delay Priority */}
-                          <td className="px-6 py-5">
-                            {project.delay > 0 ? (
-                              <span className="text-rose-400 font-bold font-mono text-xs">+{project.delay}d</span>
-                            ) : (
-                              <span className="text-[#33b3d4] font-bold text-xs uppercase tracking-wider font-sans">On Time</span>
-                            )}
-                          </td>
-                          {/* Date */}
-                          <td className="px-6 py-5 text-slate-400 text-xs">
-                            <div className="flex items-center gap-2">
-                              <Calendar size={12} className="text-[#d4af37]" />
-                              {project.nextDeadline}
-                            </div>
-                          </td>
-                          {/* Open Board Gold outline button */}
-                          <td className="px-6 py-5 text-right" onClick={(e) => e.stopPropagation()}>
-                            <button 
-                              onClick={() => {
-                                setSelectedProjectId(project.id);
-                                setActiveTab('drilldown');
-                              }}
-                              className="border border-[#d4af37] text-[#d4af37] bg-transparent hover:bg-[#d4af37]/10 px-3.5 py-1.5 rounded-lg text-[9px] font-bold font-sans uppercase tracking-widest transition-all cursor-pointer shadow-[0_0_10px_rgba(212,175,55,0.05)]"
-                            >
-                              Open Board
-                            </button>
+                    <tbody className="divide-y divide-white/5">
+                      {filteredTasks.map((t, idx) => {
+                        const delay = getDelayDays(t.bFinish, t.fFinish);
+                        const isDelayed = delay > 0 && t.status !== 'Complete';
+                        const taskKey = `${t.phase}-${t.scope}-${t.stage}`;
+                        const isSelected = selectedTask && `${selectedTask.phase}-${selectedTask.scope}-${selectedTask.stage}` === taskKey;
+                        
+                        return (
+                          <tr 
+                            key={idx} 
+                            onClick={() => setSelectedTaskId(taskKey)}
+                            className={`hover:bg-[#16314f]/50 transition-colors cursor-pointer ${isSelected ? 'bg-[#16314f]' : ''} ${isDelayed ? 'od' : ''}`}
+                          >
+                            <td className="idx">{idx + 1}</td>
+                            <td className="stage font-medium text-white max-w-[200px] truncate">
+                              {t.stage}
+                              <span className="ph block text-[9px] text-[#7e95ab] mt-0.5 truncate">{t.phase}</span>
+                            </td>
+                            <td className="scope">{t.scope}</td>
+                            <td className="owner">{t.owner || '—'}</td>
+                            <td className="cons">{t.consultant || '—'}</td>
+                            <td className="date font-mono text-[10px]">{t.bFinish || '—'}</td>
+                            <td className="date font-mono text-[10px]">{t.fFinish || '—'}</td>
+                            <td className="status">
+                              {renderStatusBadge(t.status, isDelayed)}
+                            </td>
+                            <td className="days">
+                              {delay > 0 ? (
+                                <span className="pill r text-[8px] py-[2px]">+{delay}d</span>
+                              ) : (
+                                <span className="pill g text-[8px] py-[2px]">On Time</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {filteredTasks.length === 0 && (
+                        <tr>
+                          <td colSpan={9} className="text-center py-20 text-[#7e95ab]">
+                            No matching milestones found. Adjust filters to search.
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
-            </div>
 
+              {/* Task Detail Card (Right Side) */}
+              {selectedTask ? (
+                <div className="bg-[#13293e]/50 border border-white/10 rounded-2xl p-6 shadow-xl space-y-6 h-[45vh] overflow-y-auto scrollable-y">
+                  <div>
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#34c6a6] border border-[#34c6a6]/30 px-2 py-0.5 rounded-md bg-[#34c6a6]/5">
+                      {selectedTask.phase}
+                    </span>
+                    <h4 className="text-md font-bold text-white mt-3 font-serif-lux">{selectedTask.stage}</h4>
+                    <p className="text-[11px] text-[#7e95ab] mt-1 uppercase tracking-wider">{selectedTask.scope}</p>
+                  </div>
+
+                  <div className="h-px bg-white/10"></div>
+
+                  {/* Task details avatar grid */}
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="bg-white/5 border border-white/5 rounded-xl p-2.5 flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#34c6a6] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[10px] shrink-0">
+                        {selectedTask.owner ? selectedTask.owner.split('/').map(w => w.trim().charAt(0)).join('') : '—'}
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[#7e95ab] text-[8px] uppercase tracking-wider block">Lead Owner</span>
+                        <span className="font-semibold text-white block truncate text-[11px]" title={selectedTask.owner || ''}>{selectedTask.owner || '—'}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-white/5 border border-white/5 rounded-xl p-2.5 flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#f1a73a] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[10px] shrink-0">
+                        {selectedTask.consultant ? selectedTask.consultant.split(' ').map(w => w.trim().charAt(0)).join('') : '—'}
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-[#7e95ab] text-[8px] uppercase tracking-wider block">Consultant</span>
+                        <span className="font-semibold text-white block truncate text-[11px]" title={selectedTask.consultant || ''}>{selectedTask.consultant || '—'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-white/10"></div>
+
+                  {/* Milestone Lifecycle Steps Flow Chart */}
+                  <div className="space-y-3">
+                    <span className="text-[#7e95ab] text-[9px] uppercase tracking-wider block">Milestone Schedule Flow</span>
+                    <div className="flex items-center justify-between text-center relative pt-2">
+                      {/* Connection Line */}
+                      <div className="absolute top-[17px] left-[10%] right-[10%] h-[2px] bg-white/10 z-0">
+                        <div 
+                          className="h-full bg-[#34c6a6] transition-all duration-300"
+                          style={{
+                            width: selectedTask.status === 'Complete' ? '100%' : selectedTask.status === 'In Progress' ? '50%' : '0%'
+                          }}
+                        />
+                      </div>
+                      
+                      {/* Node 1: Baseline Target */}
+                      <div className="flex flex-col items-center relative z-10 w-[30%]">
+                        <div className="w-[10px] h-[10px] rounded-full bg-[#34c6a6] shadow-[0_0_8px_#34c6a6] mb-1.5" />
+                        <span className="text-[9px] font-bold text-white block">Baseline Finish</span>
+                        <span className="text-[9px] font-mono text-[#aebfd1] block mt-0.5">{selectedTask.bFinish || '—'}</span>
+                      </div>
+
+                      {/* Node 2: Forecast Finish */}
+                      <div className="flex flex-col items-center relative z-10 w-[30%]">
+                        <div className={`w-[10px] h-[10px] rounded-full mb-1.5 ${
+                          selectedTask.status === 'Complete' || selectedTask.status === 'In Progress'
+                            ? 'bg-[#f1a73a] shadow-[0_0_8px_#f1a73a]'
+                            : 'bg-white/20'
+                        }`} />
+                        <span className="text-[9px] font-bold text-white block">Forecast Finish</span>
+                        <span className="text-[9px] font-mono text-[#aebfd1] block mt-0.5">{selectedTask.fFinish || '—'}</span>
+                      </div>
+
+                      {/* Node 3: Status Completion */}
+                      <div className="flex flex-col items-center relative z-10 w-[30%]">
+                        <div className={`w-[10px] h-[10px] rounded-full mb-1.5 ${
+                          selectedTask.status === 'Complete'
+                            ? 'bg-[#46c08a] shadow-[0_0_8px_#46c08a]'
+                            : 'bg-white/20'
+                        }`} />
+                        <span className="text-[9px] font-bold text-white block">Commissioning</span>
+                        <span className="text-[9px] text-[#7e95ab] block mt-0.5 uppercase tracking-wider">{selectedTask.status}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-white/10"></div>
+
+                  {/* Gantt visual progress chart */}
+                  <div>
+                    <span className="text-[#7e95ab] text-[9px] uppercase tracking-wider block mb-2">Visual Gantt Progress Bar</span>
+                    <div className="w-full bg-[#0b1d2e] h-4 rounded-full border border-white/10 overflow-hidden relative">
+                      {/* Fill color based on status */}
+                      <div 
+                        className={`h-full transition-all duration-500 flex items-center justify-end pr-2 ${
+                          selectedTask.status === 'Complete' ? 'bg-[#46c08a]' : 
+                          getDelayDays(selectedTask.bFinish, selectedTask.fFinish) > 0 ? 'bg-[#ff5a5f]' : 'bg-[#f1a73a]'
+                        }`}
+                        style={{ 
+                          width: `${selectedTask.status === 'Complete' ? 100 : selectedTask.status === 'In Progress' ? 50 : 10}%` 
+                        }}
+                      >
+                        <span className="text-[8px] font-bold text-white font-mono leading-none">
+                          {selectedTask.status === 'Complete' ? '100%' : selectedTask.status === 'In Progress' ? '50%' : '10%'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center text-[9px] text-[#7e95ab] mt-1.5 font-mono">
+                      <span>Start: 2024</span>
+                      <span>Finish Forecast: {selectedTask.fFinish || '—'}</span>
+                    </div>
+                  </div>
+
+                  {/* Blocker alert warning block */}
+                  {getDelayDays(selectedTask.bFinish, selectedTask.fFinish) > 0 && selectedTask.status !== 'Complete' && (
+                    <div className="bg-[#ff5a5f]/10 border border-[#ff5a5f]/30 p-3.5 rounded-xl space-y-2">
+                      <div className="flex items-center gap-2 text-[#ff5a5f] text-[10px] font-bold uppercase tracking-wider">
+                        <AlertTriangle size={14} />
+                        Active delay logged
+                      </div>
+                      <p className="text-[11px] text-[#ff5a5f]/90 italic leading-relaxed">
+                        Task schedule exceeds baseline target by <b className="font-bold">{getDelayDays(selectedTask.bFinish, selectedTask.fFinish)} days</b>. Mitigation protocols recommended.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="bg-white/5 border border-white/5 p-3 rounded-lg flex items-center gap-3">
+                    <Database size={14} className="text-[#34c6a6]" />
+                    <span className="text-[10px] text-[#7e95ab] uppercase tracking-wider font-bold">Relational Bindings Active</span>
+                  </div>
+
+                </div>
+              ) : (
+                <div className="bg-[#13293e]/50 border border-white/10 rounded-2xl p-6 shadow-xl flex items-center justify-center text-[#7e95ab] h-[45vh]">
+                  Select a milestone task row to view details.
+                </div>
+              )}
+
+            </div>
           </div>
         )}
-
-        {/* ==========================================
-            TAB 2: PROJECT DRILL-DOWN (GANTT VIEW)
-            ========================================== */}
-        {activeTab === 'drilldown' && (
-          <div className="space-y-6 animate-fadeIn">
-            
-            {/* Quick Context Navigator */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setActiveTab('portfolio')}
-                  className="p-2.5 rounded-xl border border-[#1a2336] bg-[#111625]/40 hover:bg-[#151d2f]/50 text-slate-400 transition-colors shadow-none"
-                  title="Back to Portfolio"
-                >
-                  <ArrowLeft size={12} />
-                </button>
-                <div>
-                  <div className="flex items-center gap-1.5 text-[9px] font-sans font-bold uppercase tracking-widest text-slate-500">
-                    <span>Portfolio</span>
-                    <span>/</span>
-                    <span>Project details</span>
-                  </div>
-                  
-                  {/* Select menu */}
-                  <div className="mt-1">
-                    <select 
-                      value={selectedProjectId}
-                      onChange={(e) => setSelectedProjectId(parseInt(e.target.value, 10))}
-                      className="bg-transparent text-xl font-serif-lux font-normal text-[#d4af37] focus:outline-none border-b border-dotted border-[#d4af37] cursor-pointer"
-                    >
-                      {projectsData.map(p => (
-                        <option key={p.id} value={p.id} className="text-slate-800 bg-white dark:bg-[#1a1714] dark:text-[#e8e6e3]">{p.name} Task Schedule</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Stats overview */}
-              <div className="flex items-center gap-4 bg-[#111625]/40 border border-[#1a2336] px-4 py-2.5 rounded-xl shadow-none text-xs font-sans">
-                <div>
-                  <span className="text-[9px] text-slate-500 block font-bold uppercase tracking-widest">Phase</span>
-                  <span className="font-bold text-[#d4af37] block mt-0.5 uppercase">{selectedProject.phase}</span>
-                </div>
-                <div className="h-6 w-px bg-[#1a2336]"></div>
-                <div>
-                  <span className="text-[9px] text-slate-500 block font-bold uppercase tracking-widest">Completion</span>
-                  <span className="font-bold text-[#d4af37] block mt-0.5 font-mono">{selectedProject.progress}%</span>
-                </div>
-                <div className="h-6 w-px bg-[#1a2336]"></div>
-                <div>
-                  <span className="text-[9px] text-slate-500 block font-bold uppercase tracking-widest">Variance</span>
-                  <span className={`font-bold block mt-0.5 font-mono ${selectedProject.delay > 0 ? 'text-rose-400' : 'text-[#33b3d4]'}`}>
-                    {selectedProject.delay > 0 ? `+${selectedProject.delay} d` : 'On Time'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Split Screen Layout: Gantt Timeline and Risk Sidebar */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-              
-              {/* Main Panel: Gantt Visual Timeline */}
-              <div className="lg:col-span-2 space-y-6">
-                
-                <div className="bg-[#111625]/40 border border-[#1a2336] rounded-2xl shadow-2xl p-6 space-y-4">
-                  <div className="flex justify-between items-center pb-4 border-b border-[#1a2336]">
-                    <h3 className="text-[10px] font-sans font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                      <ListTodo size={16} className="text-[#33b3d4]" />
-                      Visual Schedule Progress Tracking (Gantt)
-                    </h3>
-                  </div>
-
-                  <div className="space-y-6 pt-2">
-                    {projectTasks.map((task) => {
-                      const isDelayed = task.status === 'Delayed';
-                      const progressWidth = task.progress;
-
-                      return (
-                        <div key={task.id} className="space-y-2 border-b border-[#1a2336]/40 pb-4 last:border-0 last:pb-0">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className={`w-1.5 h-1.5 rounded-full ${
-                                  task.status === 'Completed' ? 'bg-emerald-500' : 
-                                  task.status === 'Delayed' ? 'bg-rose-500' : 
-                                  task.status === 'In Progress' ? 'bg-blue-500' : 'bg-slate-500'
-                                }`}></span>
-                                <h4 className="text-sm font-serif-lux font-bold text-white">{task.name}</h4>
-                              </div>
-                              <div className="flex items-center gap-3 text-[10px] text-slate-400 mt-1">
-                                <span>Type: {task.type}</span>
-                                <span>Start: {task.baselineStart}</span>
-                                <span>Finish: {task.actualFinish}</span>
-                              </div>
-                            </div>
-
-                            {/* Status Badge */}
-                            <span className={`inline-flex px-2 py-0.5 rounded-md text-[9px] font-sans font-bold tracking-wider uppercase border ${getTaskStatusBadge(task.status)}`}>
-                              {task.status}
-                            </span>
-                          </div>
-
-                          {/* Gantt Bar Chart */}
-                          <div className="pt-1">
-                            <div className="w-full bg-[#080c14] h-2.5 rounded-none overflow-hidden relative border border-[#1a2336]">
-                              
-                              {/* Duration elapsed fill */}
-                              <div 
-                                className={`h-full transition-all duration-700 ${
-                                  isDelayed 
-                                    ? 'bg-rose-500/20 border-r border-rose-500' 
-                                    : 'bg-[#d4af37]'
-                                }`} 
-                                style={{ width: `${progressWidth}%` }}
-                              >
-                                {progressWidth > 15 && (
-                                  <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[8px] font-mono font-bold text-white dark:text-slate-900">
-                                    {progressWidth}% Done
-                                  </span>
-                                )}
-                              </div>
-
-                              {/* Target Deadline Marker */}
-                              <div className="absolute right-12 top-0 bottom-0 w-[0.5px] bg-slate-600" title="Baseline Milestone"></div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Database mock note */}
-                <div className="flex items-center gap-2 text-[9px] font-sans text-slate-500 uppercase tracking-wider font-bold">
-                  <Database size={11} className="text-[#d4af37]" />
-                  <span>Local Relational Mapping. Schema ready for dynamic database bindings.</span>
-                </div>
-
-              </div>
-
-              {/* Sidebar: Risk Management & Blocker Alerts */}
-              <div className="space-y-6">
-                
-                {/* Active Blocker Warnings */}
-                <div className="bg-rose-950/5 border border-rose-900/20 rounded-2xl p-6 shadow-2xl space-y-4">
-                  <h4 className="text-[10px] font-bold font-sans text-rose-400 uppercase tracking-widest flex items-center gap-2">
-                    <ShieldAlert size={14} />
-                    Active Blocker Alerts
-                  </h4>
-
-                  <div className="space-y-3">
-                    {projectTasks.filter(t => t.status === 'Delayed').map((task, idx) => (
-                      <div key={idx} className="bg-[#111625]/80 border border-rose-900/30 p-4 rounded-xl shadow-lg space-y-3">
-                        <div>
-                          <span className="text-[8px] font-bold font-sans tracking-wider uppercase px-2 py-0.5 bg-rose-950 text-rose-400 rounded-md border border-rose-900/30">
-                            Critical Path delay
-                          </span>
-                          <h5 className="text-xs font-serif-lux font-bold text-white mt-2">{task.name}</h5>
-                        </div>
-
-                        {/* Blocker Text */}
-                        <p className="text-[11px] text-rose-400/90 italic bg-rose-950/20 p-2.5 rounded-lg border-l-2 border-rose-500">
-                          &quot;{task.blocker || 'Delay variance logged in project timeline.'}&quot;
-                        </p>
-
-                        {/* Owner Badge */}
-                        <div className="flex items-center gap-2 pt-1 border-t border-[#1a2336]">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0 ${task.owner?.avatarBg || 'bg-slate-400'}`}>
-                            {task.owner?.initials || 'TO'}
-                          </div>
-                          <div>
-                            <span className="text-[8px] font-sans font-bold text-slate-500 uppercase block">Owner Assigned</span>
-                            <span className="text-xs font-bold text-slate-300">{task.owner?.name || 'Task Officer'}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-
-                    {projectTasks.filter(t => t.status === 'Delayed').length === 0 && (
-                      <div className="text-center py-6">
-                        <CheckCircle2 className="text-emerald-500 mx-auto mb-2" size={18} />
-                        <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest font-sans">No active schedule blockers</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Directory */}
-                <div className="bg-[#111625]/40 border border-[#1a2336] rounded-2xl p-6 shadow-2xl space-y-4">
-                  <h4 className="text-[10px] font-sans font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <Users size={14} />
-                    Project Directory
-                  </h4>
-
-                  <div className="space-y-3">
-                    {Array.from(new Set(projectTasks.map(t => JSON.stringify(t.owner)))).map((ownerStr, idx) => {
-                      const ownerObj = JSON.parse(ownerStr);
-                      if (!ownerObj) return null;
-                      return (
-                        <div key={idx} className="flex items-center gap-3 p-1.5 rounded-lg hover:bg-[#151d2f]/50 transition-colors">
-                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0 ${ownerObj.avatarBg}`}>
-                            {ownerObj.initials}
-                          </div>
-                          <div>
-                            <span className="text-xs font-bold text-slate-200 block">{ownerObj.name}</span>
-                            <span className="text-[9px] text-slate-400 block font-sans uppercase tracking-wider">Lead Task Architect</span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-        )}
-
-        {/* ==========================================
-            LUXURY FOOTER
-            ========================================== */}
-        <footer className="pt-6 border-t border-[#1a2336] flex justify-between items-center text-[9px] text-slate-500 uppercase tracking-widest font-sans font-bold">
-          <span>Hassan Allam Properties © 2026. All Rights Reserved.</span>
-          <span className="text-[#d4af37] font-mono">V1.4 PROTOTYPE</span>
-        </footer>
 
       </div>
+
+      {/* ==========================================
+          FOOTER (SLIDESHOW MANUAL AND AUTOMATIC CYCLE CONTROLS)
+          ========================================== */}
+      <div className="footer flex-none h-[5.6vh] min-h-[42px] flex items-center gap-[1.2vw] px-[2.2vw] border-t border-white/10 bg-[#0e2438] relative z-40">
+        
+        {/* Navigation arrow / play-pause cycle buttons */}
+        <div className="ctrl flex items-center gap-[0.5vw]">
+          <button 
+            id="prev" 
+            onClick={handlePrev}
+            disabled={activeTab !== 'presentation'}
+            className="w-[3.2vh] h-[3.2vh] min-w-[26px] min-h-[26px] rounded-lg grid place-items-center text-[#aebfd1] bg-white/5 hover:bg-white/10 hover:text-[#eaf1f8] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            title="Previous (←)"
+            aria-label="Previous"
+          >
+            <ChevronLeft size={16} />
+          </button>
+          
+          <button 
+            id="play" 
+            onClick={handlePlayPause}
+            disabled={activeTab !== 'presentation'}
+            className="w-[3.2vh] h-[3.2vh] min-w-[26px] min-h-[26px] rounded-lg grid place-items-center text-[#aebfd1] bg-white/5 hover:bg-white/10 hover:text-[#eaf1f8] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            title="Pause/Play (space)"
+            aria-label="Pause or play"
+          >
+            {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+          </button>
+          
+          <button 
+            id="next" 
+            onClick={handleNext}
+            disabled={activeTab !== 'presentation'}
+            className="w-[3.2vh] h-[3.2vh] min-w-[26px] min-h-[26px] rounded-lg grid place-items-center text-[#aebfd1] bg-white/5 hover:bg-white/10 hover:text-[#eaf1f8] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            title="Next (→)"
+            aria-label="Next"
+          >
+            <ChevronRight size={16} />
+          </button>
+        </div>
+
+        {/* Dynamic slide name status display */}
+        <div className="pgname text-[11px] text-[#7e95ab] tracking-[0.04em] min-w-[12vw] ml-3">
+          Slide Name: <b className="text-[#aebfd1] font-semibold">
+            {slideIndex === 0 ? "Portfolio Overview" : PHASES[slideIndex - 1]}
+          </b>
+        </div>
+        
+        {/* Progress Fill bar indicating rotation time remaining */}
+        <div className="cycle flex-grow h-[4px] rounded-full bg-white/10 overflow-hidden relative">
+          <i 
+            id="cyclebar" 
+            className="block h-full bg-[#34c6a6] rounded-full transition-all ease-linear duration-100" 
+            style={{ width: `${activeTab === 'presentation' ? progress : 0}%` }}
+          ></i>
+        </div>
+        
+        {/* Navigation slide index dot indicator list */}
+        <div className="dots flex gap-[0.7vw]">
+          {[0, 1, 2, 3].map((idx) => (
+            <button
+              key={idx}
+              onClick={() => activeTab === 'presentation' && handleDotClick(idx)}
+              disabled={activeTab !== 'presentation'}
+              className={`w-[0.85vw] h-[0.85vw] min-w-[9px] min-h-[9px] rounded-full transition-all duration-300 cursor-pointer ${
+                slideIndex === idx 
+                  ? 'bg-[#34c6a6] scale-125' 
+                  : 'bg-white/20 hover:bg-white/50 disabled:pointer-events-none'
+              }`}
+              title={`Slide ${idx + 1}`}
+              aria-label={`Slide ${idx + 1}`}
+            ></button>
+          ))}
+        </div>
+
+        {/* Footnote versioning */}
+        <div className="text-[10px] text-[#7e95ab] border-l border-white/10 pl-6 font-mono font-bold tracking-wider hidden sm:block">
+          PORTFOLIO CONTROL V2.0
+        </div>
+      </div>
+      
     </div>
   );
 }
