@@ -21,10 +21,11 @@ import {
   LayoutGrid,
   List
 } from 'lucide-react';
-import rawData from './projects-data.json';
+import { createClient } from '../utils/supabase/client';
 
 // Define data interfaces
 interface TaskData {
+  project: string;
   phase: string;
   scope: string;
   stage: string;
@@ -33,9 +34,17 @@ interface TaskData {
   bFinish: string | null;
   fFinish: string | null;
   status: string;
+  
+  // Schedule timeline metrics
+  durationDays: number | null;
+  durationWeeks: number | null;
+  durationMonths: number | null;
+  baselineStart: string | null;
+  baselineFinish: string | null;
+  durationActualWeeks: number | null;
+  actualStart: string | null;
+  actualFinish: string | null;
 }
-
-const tasks: TaskData[] = rawData.PC;
 
 // Helper to compute delay in days
 const getDelayDays = (bFinish: string | null, fFinish: string | null): number => {
@@ -47,17 +56,13 @@ const getDelayDays = (bFinish: string | null, fFinish: string | null): number =>
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 };
 
-// Phases in presentation order
-const PHASES = [
-  "Phase 1A (Terraces)",
-  "Phase 2A/2B (Great Lawn)",
-  "Phase 1B/2C (Villas)"
-];
+
 
 const CYCLE_DURATION_MS = 12000; // 12 seconds per slide
 const CYCLE_INTERVAL_MS = 100;   // Update progress bar every 100ms
 
 export default function ControlBoardDashboard() {
+  const supabase = createClient();
   const [activeTab, setActiveTab] = useState<'presentation' | 'interactive'>('presentation');
   const [slideIndex, setSlideIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
@@ -76,24 +81,79 @@ export default function ControlBoardDashboard() {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [interactiveViewMode, setInteractiveViewMode] = useState<'list' | 'board'>('list');
 
+  // Supabase Live Data State
+  const [tasks, setTasks] = useState<TaskData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch tasks from Supabase
+  useEffect(() => {
+    async function loadTasks() {
+      try {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .order('project', { ascending: true })
+          .order('created_at', { ascending: true });
+        
+        if (error) throw error;
+        
+        const mapped: TaskData[] = (data || []).map(row => ({
+          project: row.project,
+          phase: row.phase,
+          scope: row.subproject || row.phase,
+          stage: row.task_name,
+          owner: row.owner,
+          consultant: row.consultant,
+          bFinish: row.baseline_finish,
+          fFinish: row.actual_finish || row.baseline_finish,
+          status: row.status,
+          durationDays: row.duration_days,
+          durationWeeks: row.duration_weeks,
+          durationMonths: row.duration_months,
+          baselineStart: row.baseline_start,
+          baselineFinish: row.baseline_finish,
+          durationActualWeeks: row.duration_actual_weeks,
+          actualStart: row.actual_start,
+          actualFinish: row.actual_finish
+        }));
+        
+        setTasks(mapped);
+      } catch (err) {
+        console.error("Failed to load tasks from Supabase:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadTasks();
+  }, []);
+
+  // Dynamic projects list extracted from dataset
+  const projectsList = useMemo(() => {
+    const projSet = new Set<string>();
+    tasks.forEach(t => {
+      if (t.project) projSet.add(t.project);
+    });
+    return Array.from(projSet).sort();
+  }, [tasks]);
+
   // Bidirectional synchronization between slideshow slideIndex and selectedPhase filter
   useEffect(() => {
     if (slideIndex === 0) {
       setSelectedPhase('All');
     } else {
-      const phaseName = PHASES[slideIndex - 1];
-      if (phaseName) {
-        setSelectedPhase(phaseName);
+      const projName = projectsList[slideIndex - 1];
+      if (projName) {
+        setSelectedPhase(projName);
       }
     }
-  }, [slideIndex]);
+  }, [slideIndex, projectsList]);
 
   const handlePhaseFilterChange = (phaseName: string) => {
     setSelectedPhase(phaseName);
     if (phaseName === 'All') {
       setSlideIndex(0);
     } else {
-      const idx = PHASES.indexOf(phaseName);
+      const idx = projectsList.indexOf(phaseName);
       if (idx !== -1) {
         setSlideIndex(idx + 1);
       }
@@ -123,14 +183,16 @@ export default function ControlBoardDashboard() {
 
   // Slide Index transitions
   const handleNext = useCallback(() => {
-    setSlideIndex(prev => (prev + 1) % 4);
+    const total = projectsList.length + 1;
+    setSlideIndex(prev => (prev + 1) % total);
     setProgress(0);
-  }, []);
+  }, [projectsList.length]);
 
   const handlePrev = useCallback(() => {
-    setSlideIndex(prev => (prev - 1 + 4) % 4);
+    const total = projectsList.length + 1;
+    setSlideIndex(prev => (prev - 1 + total) % total);
     setProgress(0);
-  }, []);
+  }, [projectsList.length]);
 
   const handlePlayPause = useCallback(() => {
     setIsPlaying(prev => !prev);
@@ -169,7 +231,8 @@ export default function ControlBoardDashboard() {
     const interval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
-          setSlideIndex(curr => (curr + 1) % 4);
+          const total = projectsList.length + 1;
+          setSlideIndex(curr => (curr + 1) % total);
           return 0;
         }
         return prev + step;
@@ -177,14 +240,16 @@ export default function ControlBoardDashboard() {
     }, CYCLE_INTERVAL_MS);
 
     return () => clearInterval(interval);
-  }, [isPlaying, slideIndex]);
+  }, [isPlaying, slideIndex, projectsList.length]);
 
   // Unique scopes in the dataset
   const allScopes = useMemo(() => {
     const scopes = new Set<string>();
-    tasks.forEach(t => scopes.add(t.scope));
-    return Array.from(scopes);
-  }, []);
+    tasks.forEach(t => {
+      if (t.scope) scopes.add(t.scope);
+    });
+    return Array.from(scopes).sort();
+  }, [tasks]);
 
   // Portfolio level stats computed dynamically
   const portfolioStats = useMemo(() => {
@@ -205,21 +270,21 @@ export default function ControlBoardDashboard() {
       completionPercent,
       totalDelayDays
     };
-  }, []);
+  }, [tasks]);
 
-  // Phase level stats computed dynamically
+  // Project level stats computed dynamically
   const phaseStats = useMemo(() => {
-    return PHASES.map(phaseName => {
-      const phaseTasks = tasks.filter(t => t.phase === phaseName);
-      const total = phaseTasks.length;
-      const completed = phaseTasks.filter(t => t.status === 'Complete').length;
-      const inProgress = phaseTasks.filter(t => t.status === 'In Progress').length;
-      const notStarted = phaseTasks.filter(t => t.status === 'Not Started').length;
-      const delayed = phaseTasks.filter(t => t.status !== 'Complete' && getDelayDays(t.bFinish, t.fFinish) > 0).length;
+    return projectsList.map(projectName => {
+      const projectTasks = tasks.filter(t => t.project === projectName);
+      const total = projectTasks.length;
+      const completed = projectTasks.filter(t => t.status === 'Complete').length;
+      const inProgress = projectTasks.filter(t => t.status === 'In Progress').length;
+      const notStarted = projectTasks.filter(t => t.status === 'Not Started').length;
+      const delayed = projectTasks.filter(t => t.status !== 'Complete' && getDelayDays(t.bFinish, t.fFinish) > 0).length;
       const completionPercent = total > 0 ? Math.round((completed / total) * 1000) / 10 : 0;
-      const totalDelayDays = phaseTasks.reduce((sum, t) => sum + getDelayDays(t.bFinish, t.fFinish), 0);
+      const totalDelayDays = projectTasks.reduce((sum, t) => sum + getDelayDays(t.bFinish, t.fFinish), 0);
 
-      // Determine phase health color dot
+      // Determine project health color dot
       let healthColor = 'g';
       if (delayed >= 5) {
         healthColor = 'r';
@@ -228,7 +293,7 @@ export default function ControlBoardDashboard() {
       }
 
       return {
-        name: phaseName,
+        name: projectName,
         total,
         completed,
         inProgress,
@@ -237,10 +302,10 @@ export default function ControlBoardDashboard() {
         completionPercent,
         totalDelayDays,
         healthColor,
-        tasks: phaseTasks
+        tasks: projectTasks
       };
     });
-  }, []);
+  }, [tasks, projectsList]);
 
   // Scope distribution statistics for Portfolio overview stacked bar chart
   const scopeBreakdown = useMemo(() => {
@@ -265,9 +330,9 @@ export default function ControlBoardDashboard() {
         notStartedPercent: total > 0 ? (notStarted / total) * 100 : 0
       };
     });
-  }, [allScopes]);
+  }, [tasks, allScopes]);
 
-  // Phase Specific Scope Progress breakdown (circular gauges)
+  // Project Specific Scope Progress breakdown (circular gauges)
   const phaseScopes = useMemo(() => {
     return phaseStats.map(phase => {
       const scopesMap: Record<string, { total: number; completed: number }> = {};
@@ -301,7 +366,7 @@ export default function ControlBoardDashboard() {
         (t.owner && t.owner.toLowerCase().includes(searchQuery.toLowerCase())) ||
         (t.consultant && t.consultant.toLowerCase().includes(searchQuery.toLowerCase()));
       
-      const matchesPhase = selectedPhase === 'All' || t.phase === selectedPhase;
+      const matchesPhase = selectedPhase === 'All' || t.project === selectedPhase;
       const matchesScope = selectedScope === 'All' || t.scope === selectedScope;
       
       let matchesStatus = true;
@@ -315,7 +380,7 @@ export default function ControlBoardDashboard() {
 
       return matchesSearch && matchesPhase && matchesScope && matchesStatus;
     });
-  }, [searchQuery, selectedPhase, selectedScope, selectedStatus]);
+  }, [tasks, searchQuery, selectedPhase, selectedScope, selectedStatus]);
 
   // Selected task in Drill-Down mode
   const selectedTask = useMemo(() => {
@@ -324,7 +389,7 @@ export default function ControlBoardDashboard() {
       if (found) return found;
     }
     return filteredTasks[0] || null;
-  }, [selectedTaskId, filteredTasks]);
+  }, [tasks, selectedTaskId, filteredTasks]);
 
   // Split filteredTasks into status groups for Kanban Board presentation view
   const boardColumns = useMemo(() => {
@@ -387,6 +452,22 @@ export default function ControlBoardDashboard() {
       </span>
     );
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0b1d2e] flex flex-col items-center justify-center text-[#eaf1f8]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-full border-t-2 border-[#34c6a6] animate-spin" />
+          <h2 className="text-lg font-bold tracking-widest uppercase text-white animate-pulse">
+            Connecting to Supabase...
+          </h2>
+          <p className="text-xs text-[#7e95ab] tracking-wider uppercase">
+            Loading Live Programme Data
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-grow flex flex-col bg-[#0b1d2e] text-[#eaf1f8] relative overflow-hidden select-none">
@@ -971,7 +1052,7 @@ export default function ControlBoardDashboard() {
                   />
                 </div>
                 
-                {/* Phase Filter */}
+                {/* Project Filter */}
                 <div className="flex items-center gap-1.5 border border-white/10 bg-[#0b1d2e] rounded-lg px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest font-sans">
                   <Filter size={11} className="text-[#34c6a6]" />
                   <select 
@@ -979,8 +1060,8 @@ export default function ControlBoardDashboard() {
                     onChange={(e) => handlePhaseFilterChange(e.target.value)}
                     className="bg-transparent focus:outline-none cursor-pointer font-bold text-[#aebfd1] text-[10px]"
                   >
-                    <option value="All" className="text-slate-800 bg-white">All Phases</option>
-                    {PHASES.map((p, idx) => (
+                    <option value="All" className="text-slate-800 bg-white">All Projects</option>
+                    {projectsList.map((p, idx) => (
                       <option key={idx} value={p} className="text-slate-800 bg-white">{p}</option>
                     ))}
                   </select>
@@ -1235,8 +1316,74 @@ export default function ControlBoardDashboard() {
                           </div>
                         </div>
                         <div className="flex justify-between items-center text-[9px] text-[#7e95ab] mt-1.5 font-mono">
-                          <span>Start: 2024</span>
+                          <span>Start: {selectedTask.actualStart || selectedTask.baselineStart || '—'}</span>
                           <span>Finish Forecast: {selectedTask.fFinish || '—'}</span>
+                        </div>
+                      </div>
+
+                      <div className="h-px bg-white/10"></div>
+
+                      {/* Detailed Schedule Metrics */}
+                      <div className="space-y-3">
+                        <span className="text-[#7e95ab] text-[9px] uppercase tracking-wider block font-bold">Planned Durations & Baselines</span>
+                        <div className="grid grid-cols-2 gap-3 text-[10px]">
+                          <div className="bg-white/5 border border-white/5 rounded-xl p-2.5 space-y-1">
+                            <span className="text-[#7e95ab] text-[8px] uppercase tracking-wider block font-bold">Baseline Schedule</span>
+                            <div className="flex justify-between text-white font-mono mt-1">
+                              <span className="text-[#7e95ab]">Start:</span>
+                              <span className="text-[#aebfd1]">{selectedTask.baselineStart || '—'}</span>
+                            </div>
+                            <div className="flex justify-between text-white font-mono">
+                              <span className="text-[#7e95ab]">Finish:</span>
+                              <span className="text-[#aebfd1]">{selectedTask.baselineFinish || '—'}</span>
+                            </div>
+                          </div>
+                          <div className="bg-white/5 border border-white/5 rounded-xl p-2.5 space-y-1">
+                            <span className="text-[#7e95ab] text-[8px] uppercase tracking-wider block font-bold">Duration Targets</span>
+                            <div className="flex justify-between text-white font-mono mt-1">
+                              <span className="text-[#7e95ab]">Days:</span>
+                              <span className="text-[#aebfd1]">{selectedTask.durationDays !== null ? `${selectedTask.durationDays}d` : '—'}</span>
+                            </div>
+                            <div className="flex justify-between text-white font-mono">
+                              <span className="text-[#7e95ab]">Weeks:</span>
+                              <span className="text-[#aebfd1]">{selectedTask.durationWeeks !== null ? `${selectedTask.durationWeeks}w` : '—'}</span>
+                            </div>
+                            <div className="flex justify-between text-white font-mono">
+                              <span className="text-[#7e95ab]">Months:</span>
+                              <span className="text-[#aebfd1]">{selectedTask.durationMonths !== null ? `${selectedTask.durationMonths}m` : '—'}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="h-px bg-white/10"></div>
+
+                      {/* Actual/Forecast Progress Metrics */}
+                      <div className="space-y-3">
+                        <span className="text-[#7e95ab] text-[9px] uppercase tracking-wider block font-bold">Actual / Forecast Progress</span>
+                        <div className="grid grid-cols-2 gap-3 text-[10px]">
+                          <div className="bg-white/5 border border-white/5 rounded-xl p-2.5 space-y-1">
+                            <span className="text-[#7e95ab] text-[8px] uppercase tracking-wider block font-bold">Actual Timeline</span>
+                            <div className="flex justify-between text-white font-mono mt-1">
+                              <span className="text-[#7e95ab]">Start:</span>
+                              <span className="text-[#aebfd1]">{selectedTask.actualStart || '—'}</span>
+                            </div>
+                            <div className="flex justify-between text-white font-mono">
+                              <span className="text-[#7e95ab]">Finish:</span>
+                              <span className="text-[#aebfd1]">{selectedTask.actualFinish || '—'}</span>
+                            </div>
+                          </div>
+                          <div className="bg-white/5 border border-white/5 rounded-xl p-2.5 space-y-1">
+                            <span className="text-[#7e95ab] text-[8px] uppercase tracking-wider block font-bold">Actual Duration</span>
+                            <div className="flex justify-between text-white font-mono mt-1">
+                              <span className="text-[#7e95ab]">Weeks:</span>
+                              <span className="text-[#aebfd1]">{selectedTask.durationActualWeeks !== null ? `${selectedTask.durationActualWeeks}w` : '—'}</span>
+                            </div>
+                            <div className="flex justify-between text-[#7e95ab] font-mono">
+                              <span>Status:</span>
+                              <span className="text-white font-bold">{selectedTask.status}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
@@ -1343,12 +1490,18 @@ export default function ControlBoardDashboard() {
                             <div className="flex flex-col gap-0.5 text-[9px] border-t border-white/5 pt-2">
                               <div className="flex items-center justify-between text-[#7e95ab] font-mono">
                                 <span>Planned:</span>
-                                <span className="text-white">{t.bFinish || '—'}</span>
+                                <span className="text-white">
+                                  {t.baselineStart && t.baselineFinish
+                                    ? `${t.baselineStart} to ${t.baselineFinish}`
+                                    : t.bFinish || '—'}
+                                </span>
                               </div>
                               <div className="flex items-center justify-between text-[#7e95ab] font-mono">
                                 <span>Forecast:</span>
                                 <span className={delay > 0 ? 'text-[#ff5a5f] font-semibold' : 'text-white'}>
-                                  {t.fFinish || '—'}
+                                  {t.actualStart && t.actualFinish
+                                    ? `${t.actualStart} to ${t.actualFinish}`
+                                    : t.fFinish || '—'}
                                 </span>
                               </div>
                               {delay > 0 && (
@@ -1417,7 +1570,7 @@ export default function ControlBoardDashboard() {
         {/* Dynamic slide name status display */}
         <div className="pgname text-[11px] text-[#7e95ab] tracking-[0.04em] min-w-[12vw] ml-3">
           Slide Name: <b className="text-[#aebfd1] font-semibold">
-            {slideIndex === 0 ? "Portfolio Overview" : PHASES[slideIndex - 1]}
+            {slideIndex === 0 ? "Portfolio Overview" : projectsList[slideIndex - 1]}
           </b>
         </div>
         
@@ -1432,7 +1585,7 @@ export default function ControlBoardDashboard() {
         
         {/* Navigation slide index dot indicator list */}
         <div className="dots flex gap-[0.7vw]">
-          {[0, 1, 2, 3].map((idx) => (
+          {Array.from({ length: projectsList.length + 1 }, (_, idx) => (
             <button
               key={idx}
               onClick={() => handleDotClick(idx)}
