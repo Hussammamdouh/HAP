@@ -56,6 +56,30 @@ const getDelayDays = (bFinish: string | null, fFinish: string | null): number =>
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
 };
 
+// Helper to compute remaining days relative to today
+const getRemainingDays = (fFinish: string | null): number | null => {
+  if (!fFinish) return null;
+  const target = new Date(fFinish);
+  if (isNaN(target.getTime())) return null;
+  const targetMidnight = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+  const now = new Date();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffTime = targetMidnight.getTime() - todayMidnight.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
+// Helper to determine if a task is delayed (overdue relative to today)
+const isTaskDelayed = (t: TaskData): boolean => {
+  if (t.status === 'Complete') return false;
+  if (!t.fFinish) return false;
+  const target = new Date(t.fFinish);
+  if (isNaN(target.getTime())) return false;
+  const targetMidnight = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+  const now = new Date();
+  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return targetMidnight.getTime() < todayMidnight.getTime();
+};
+
 
 
 const CYCLE_DURATION_MS = 12000; // 12 seconds per slide
@@ -257,9 +281,9 @@ export default function ControlBoardDashboard() {
     const completed = tasks.filter(t => t.status === 'Complete').length;
     const inProgress = tasks.filter(t => t.status === 'In Progress').length;
     const notStarted = tasks.filter(t => t.status === 'Not Started').length;
-    const delayed = tasks.filter(t => t.status !== 'Complete' && getDelayDays(t.bFinish, t.fFinish) > 0).length;
+    const delayed = tasks.filter(t => isTaskDelayed(t)).length;
     const completionPercent = total > 0 ? Math.round((completed / total) * 1000) / 10 : 0;
-    const totalDelayDays = tasks.reduce((sum, t) => sum + getDelayDays(t.bFinish, t.fFinish), 0);
+    const totalDelayDays = tasks.reduce((sum, t) => sum + (isTaskDelayed(t) ? getDelayDays(t.bFinish, t.fFinish) : 0), 0);
 
     return {
       total,
@@ -280,9 +304,9 @@ export default function ControlBoardDashboard() {
       const completed = projectTasks.filter(t => t.status === 'Complete').length;
       const inProgress = projectTasks.filter(t => t.status === 'In Progress').length;
       const notStarted = projectTasks.filter(t => t.status === 'Not Started').length;
-      const delayed = projectTasks.filter(t => t.status !== 'Complete' && getDelayDays(t.bFinish, t.fFinish) > 0).length;
+      const delayed = projectTasks.filter(t => isTaskDelayed(t)).length;
       const completionPercent = total > 0 ? Math.round((completed / total) * 1000) / 10 : 0;
-      const totalDelayDays = projectTasks.reduce((sum, t) => sum + getDelayDays(t.bFinish, t.fFinish), 0);
+      const totalDelayDays = projectTasks.reduce((sum, t) => sum + (isTaskDelayed(t) ? getDelayDays(t.bFinish, t.fFinish) : 0), 0);
 
       // Determine project health color dot
       let healthColor = 'g';
@@ -313,9 +337,9 @@ export default function ControlBoardDashboard() {
       const scopeTasks = tasks.filter(t => t.scope === scopeName);
       const total = scopeTasks.length;
       const completed = scopeTasks.filter(t => t.status === 'Complete').length;
-      const delayed = scopeTasks.filter(t => t.status !== 'Complete' && getDelayDays(t.bFinish, t.fFinish) > 0).length;
-      const inProgress = scopeTasks.filter(t => t.status === 'In Progress' && getDelayDays(t.bFinish, t.fFinish) <= 0).length;
-      const notStarted = scopeTasks.filter(t => t.status === 'Not Started' && getDelayDays(t.bFinish, t.fFinish) <= 0).length;
+      const delayed = scopeTasks.filter(t => isTaskDelayed(t)).length;
+      const inProgress = scopeTasks.filter(t => t.status === 'In Progress' && !isTaskDelayed(t)).length;
+      const notStarted = scopeTasks.filter(t => t.status === 'Not Started' && !isTaskDelayed(t)).length;
 
       return {
         name: scopeName,
@@ -372,7 +396,7 @@ export default function ControlBoardDashboard() {
       let matchesStatus = true;
       if (selectedStatus !== 'All') {
         if (selectedStatus === 'Delayed') {
-          matchesStatus = t.status !== 'Complete' && getDelayDays(t.bFinish, t.fFinish) > 0;
+          matchesStatus = isTaskDelayed(t);
         } else {
           matchesStatus = t.status === selectedStatus;
         }
@@ -393,16 +417,17 @@ export default function ControlBoardDashboard() {
 
   // Split filteredTasks into status groups for Kanban Board presentation view
   const boardColumns = useMemo(() => {
-    const completeTasks: TaskData[] = [];
     const activeTasks: TaskData[] = [];
     const delayedTasks: TaskData[] = [];
     const pendingTasks: TaskData[] = [];
 
     filteredTasks.forEach(t => {
-      const delay = getDelayDays(t.bFinish, t.fFinish);
       if (t.status === 'Complete') {
-        completeTasks.push(t);
-      } else if (delay > 0) {
+        // Skip completed milestones in Kanban Board view
+        return;
+      }
+      
+      if (isTaskDelayed(t)) {
         delayedTasks.push(t);
       } else if (t.status === 'In Progress') {
         activeTasks.push(t);
@@ -414,7 +439,6 @@ export default function ControlBoardDashboard() {
     return [
       { id: 'delayed', title: 'Delayed / Blocked', color: '#ff5a5f', border: 'rgba(255,90,95,0.25)', tasks: delayedTasks },
       { id: 'active', title: 'Active / In Progress', color: '#f1a73a', border: 'rgba(241,167,58,0.25)', tasks: activeTasks },
-      { id: 'complete', title: 'Completed Milestones', color: '#46c08a', border: 'rgba(70,192,138,0.25)', tasks: completeTasks },
       { id: 'pending', title: 'Not Started / Pending', color: '#7e95ab', border: 'rgba(255,255,255,0.1)', tasks: pendingTasks }
     ];
   }, [filteredTasks]);
@@ -862,7 +886,7 @@ export default function ControlBoardDashboard() {
 
                 // Calculate active delay log blockers
                 const delayedMilestones = phase.tasks
-                  .filter(t => t.status !== 'Complete' && getDelayDays(t.bFinish, t.fFinish) > 0)
+                  .filter(t => isTaskDelayed(t))
                   .sort((a, b) => {
                     const delayA = getDelayDays(a.bFinish, a.fFinish);
                     const delayB = getDelayDays(b.bFinish, b.fFinish);
@@ -946,29 +970,40 @@ export default function ControlBoardDashboard() {
                         </div>
                         
                         <div className="space-y-3.5 flex-grow overflow-y-auto pr-1 scrollable-y">
-                          {upcomingMilestones.map((t, idx) => (
-                            <div key={idx} className="bg-white/5 border border-white/5 hover:border-white/10 transition-colors rounded-xl p-3 flex items-start gap-3">
-                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#34c6a6] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[9px] shrink-0 mt-0.5">
-                                {t.owner ? t.owner.split('/').map(w => w.trim().charAt(0)).join('') : '—'}
-                              </div>
-                              <div className="min-w-0 flex-grow text-left">
-                                <div className="flex items-center justify-between gap-2">
-                                  <span className="text-[9px] font-bold text-[#7e95ab] uppercase tracking-wider block">{t.scope}</span>
-                                  <span className="text-[9px] font-bold text-[#34c6a6] px-1.5 py-0.5 border border-[#34c6a6]/30 bg-[#34c6a6]/10 rounded-md shrink-0 leading-none">
-                                    Active
+                          {upcomingMilestones.map((t, idx) => {
+                            const remainingDays = getRemainingDays(t.fFinish);
+                            return (
+                              <div key={idx} className="bg-white/5 border border-white/5 hover:border-white/10 transition-colors rounded-xl p-3 flex items-start gap-3">
+                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#34c6a6] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[9px] shrink-0 mt-0.5">
+                                  {t.owner ? t.owner.split('/').map(w => w.trim().charAt(0)).join('') : '—'}
+                                </div>
+                                <div className="min-w-0 flex-grow text-left">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <span className="text-[9px] font-bold text-[#7e95ab] uppercase tracking-wider block">{t.scope}</span>
+                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 border rounded-md shrink-0 leading-none ${
+                                      remainingDays === null ? 'border-white/10 bg-white/5 text-[#7e95ab]' :
+                                      remainingDays < 0 ? 'border-[#ff5a5f]/30 bg-[#ff5a5f]/10 text-[#ff5a5f]' :
+                                      remainingDays === 0 ? 'border-[#f1a73a]/30 bg-[#f1a73a]/10 text-[#f1a73a]' :
+                                      'border-[#34c6a6]/30 bg-[#34c6a6]/10 text-[#34c6a6]'
+                                    }`}>
+                                      {remainingDays === null ? 'No Date' :
+                                       remainingDays < 0 ? `Overdue by ${Math.abs(remainingDays)}d` :
+                                       remainingDays === 0 ? 'Due Today' :
+                                       `${remainingDays}d left`}
+                                    </span>
+                                  </div>
+                                  <span className="font-semibold text-white block text-[11px] truncate mt-0.5" title={t.stage}>{t.stage}</span>
+                                  <span className="text-[10px] font-mono text-[#aebfd1] block mt-0.5 flex items-center gap-1">
+                                    <Calendar size={11} className="text-[#34c6a6]" />
+                                    Due: {t.fFinish || '—'}
+                                  </span>
+                                  <span className="text-[9px] text-[#7e95ab] block mt-1">
+                                    Owner: <b className="text-[#aebfd1] font-semibold">{t.owner || '—'}</b> | Agent: <b className="text-[#aebfd1] font-semibold">{t.consultant || '—'}</b>
                                   </span>
                                 </div>
-                                <span className="font-semibold text-white block text-[11px] truncate mt-0.5" title={t.stage}>{t.stage}</span>
-                                <span className="text-[10px] font-mono text-[#aebfd1] block mt-0.5 flex items-center gap-1">
-                                  <Calendar size={11} className="text-[#34c6a6]" />
-                                  Due: {t.fFinish || '—'}
-                                </span>
-                                <span className="text-[9px] text-[#7e95ab] block mt-1">
-                                  Owner: <b className="text-[#aebfd1] font-semibold">{t.owner || '—'}</b> | Agent: <b className="text-[#aebfd1] font-semibold">{t.consultant || '—'}</b>
-                                </span>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                           {upcomingMilestones.length === 0 && (
                             <div className="flex flex-col items-center justify-center text-center py-20 text-[#7e95ab]">
                               <CheckCircle2 size={32} className="text-[#46c08a] mb-3 opacity-60" />
@@ -1165,7 +1200,7 @@ export default function ControlBoardDashboard() {
                       <tbody className="divide-y divide-white/5">
                         {filteredTasks.map((t, idx) => {
                           const delay = getDelayDays(t.bFinish, t.fFinish);
-                          const isDelayed = delay > 0 && t.status !== 'Complete';
+                          const isDelayed = isTaskDelayed(t);
                           const taskKey = `${t.phase}-${t.scope}-${t.stage}`;
                           const isSelected = selectedTask && `${selectedTask.phase}-${selectedTask.scope}-${selectedTask.stage}` === taskKey;
                           
@@ -1254,42 +1289,49 @@ export default function ControlBoardDashboard() {
                         <span className="text-[#7e95ab] text-[9px] uppercase tracking-wider block">Milestone Schedule Flow</span>
                         <div className="flex items-center justify-between text-center relative pt-2">
                           {/* Connection Line */}
-                          <div className="absolute top-[17px] left-[10%] right-[10%] h-[2px] bg-white/10 z-0">
+                          <div className="absolute top-[17px] left-[8%] right-[8%] h-[2px] bg-white/10 z-0">
                             <div 
                               className="h-full bg-[#34c6a6] transition-all duration-300"
                               style={{
-                                width: selectedTask.status === 'Complete' ? '100%' : selectedTask.status === 'In Progress' ? '50%' : '0%'
+                                width: selectedTask.status === 'Complete' ? '100%' : selectedTask.status === 'In Progress' ? '66%' : '33%'
                               }}
                             />
                           </div>
                           
-                          {/* Node 1: Baseline Target */}
-                          <div className="flex flex-col items-center relative z-10 w-[30%]">
+                          {/* Node 1: Baseline Start */}
+                          <div className="flex flex-col items-center relative z-10 w-[22%]">
                             <div className="w-[10px] h-[10px] rounded-full bg-[#34c6a6] shadow-[0_0_8px_#34c6a6] mb-1.5" />
-                            <span className="text-[9px] font-bold text-white block">Baseline Finish</span>
-                            <span className="text-[9px] font-mono text-[#aebfd1] block mt-0.5">{selectedTask.bFinish || '—'}</span>
+                            <span className="text-[8px] font-bold text-white block leading-tight">Baseline Start</span>
+                            <span className="text-[8px] font-mono text-[#aebfd1] block mt-0.5">{selectedTask.baselineStart || '—'}</span>
                           </div>
 
-                          {/* Node 2: Forecast Finish */}
-                          <div className="flex flex-col items-center relative z-10 w-[30%]">
+                          {/* Node 2: Baseline Finish */}
+                          <div className="flex flex-col items-center relative z-10 w-[22%]">
+                            <div className="w-[10px] h-[10px] rounded-full bg-[#34c6a6] shadow-[0_0_8px_#34c6a6] mb-1.5" />
+                            <span className="text-[8px] font-bold text-white block leading-tight">Baseline Finish</span>
+                            <span className="text-[8px] font-mono text-[#aebfd1] block mt-0.5">{selectedTask.baselineFinish || '—'}</span>
+                          </div>
+
+                          {/* Node 3: Actual Start */}
+                          <div className="flex flex-col items-center relative z-10 w-[22%]">
                             <div className={`w-[10px] h-[10px] rounded-full mb-1.5 ${
                               selectedTask.status === 'Complete' || selectedTask.status === 'In Progress'
                                 ? 'bg-[#f1a73a] shadow-[0_0_8px_#f1a73a]'
                                 : 'bg-white/20'
                             }`} />
-                            <span className="text-[9px] font-bold text-white block">Forecast Finish</span>
-                            <span className="text-[9px] font-mono text-[#aebfd1] block mt-0.5">{selectedTask.fFinish || '—'}</span>
+                            <span className="text-[8px] font-bold text-white block leading-tight">Actual Start</span>
+                            <span className="text-[8px] font-mono text-[#aebfd1] block mt-0.5">{selectedTask.actualStart || '—'}</span>
                           </div>
 
-                          {/* Node 3: Status Commissioning */}
-                          <div className="flex flex-col items-center relative z-10 w-[30%]">
+                          {/* Node 4: Actual Finish */}
+                          <div className="flex flex-col items-center relative z-10 w-[22%]">
                             <div className={`w-[10px] h-[10px] rounded-full mb-1.5 ${
                               selectedTask.status === 'Complete'
                                 ? 'bg-[#46c08a] shadow-[0_0_8px_#46c08a]'
                                 : 'bg-white/20'
                             }`} />
-                            <span className="text-[9px] font-bold text-white block">Commissioning</span>
-                            <span className="text-[9px] text-[#7e95ab] block mt-0.5 uppercase tracking-wider">{selectedTask.status}</span>
+                            <span className="text-[8px] font-bold text-white block leading-tight">Actual Finish</span>
+                            <span className="text-[8px] font-mono text-[#aebfd1] block mt-0.5">{selectedTask.actualFinish || '—'}</span>
                           </div>
                         </div>
                       </div>
@@ -1304,7 +1346,7 @@ export default function ControlBoardDashboard() {
                           <div 
                             className={`h-full transition-all duration-500 flex items-center justify-end pr-2 ${
                               selectedTask.status === 'Complete' ? 'bg-[#46c08a]' : 
-                              getDelayDays(selectedTask.bFinish, selectedTask.fFinish) > 0 ? 'bg-[#ff5a5f]' : 'bg-[#f1a73a]'
+                              isTaskDelayed(selectedTask) ? 'bg-[#ff5a5f]' : 'bg-[#f1a73a]'
                             }`}
                             style={{ 
                               width: `${selectedTask.status === 'Complete' ? 100 : selectedTask.status === 'In Progress' ? 50 : 10}%` 
@@ -1388,14 +1430,18 @@ export default function ControlBoardDashboard() {
                       </div>
 
                       {/* Blocker alert warning block */}
-                      {getDelayDays(selectedTask.bFinish, selectedTask.fFinish) > 0 && selectedTask.status !== 'Complete' && (
+                      {isTaskDelayed(selectedTask) && (
                         <div className="bg-[#ff5a5f]/10 border border-[#ff5a5f]/30 p-3.5 rounded-xl space-y-2">
                           <div className="flex items-center gap-2 text-[#ff5a5f] text-[10px] font-bold uppercase tracking-wider">
                             <AlertTriangle size={14} />
                             Active delay logged
                           </div>
                           <p className="text-[11px] text-[#ff5a5f]/90 italic leading-relaxed">
-                            Task schedule exceeds baseline target by <b className="font-bold">{getDelayDays(selectedTask.bFinish, selectedTask.fFinish)} days</b>. Mitigation protocols recommended.
+                            {getDelayDays(selectedTask.bFinish, selectedTask.fFinish) > 0 ? (
+                              <>Task schedule exceeds baseline target by <b className="font-bold">{getDelayDays(selectedTask.bFinish, selectedTask.fFinish)} days</b>. Mitigation protocols recommended.</>
+                            ) : (
+                              <>Task is currently overdue relative to its scheduled completion target.</>
+                            )}
                           </p>
                         </div>
                       )}
@@ -1413,7 +1459,7 @@ export default function ControlBoardDashboard() {
                 </div>
               </div>
             ) : (
-              <div className="flex-grow grid grid-cols-1 md:grid-cols-4 gap-6 items-stretch overflow-hidden min-h-0 h-full">
+              <div className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch overflow-hidden min-h-0 h-full">
                 {boardColumns.map((col, cIdx) => (
                   <div 
                     key={cIdx} 
@@ -1498,7 +1544,7 @@ export default function ControlBoardDashboard() {
                               </div>
                               <div className="flex items-center justify-between text-[#7e95ab] font-mono">
                                 <span>Forecast:</span>
-                                <span className={delay > 0 ? 'text-[#ff5a5f] font-semibold' : 'text-white'}>
+                                <span className={isTaskDelayed(t) ? 'text-[#ff5a5f] font-semibold' : 'text-white'}>
                                   {t.actualStart && t.actualFinish
                                     ? `${t.actualStart} to ${t.actualFinish}`
                                     : t.fFinish || '—'}
