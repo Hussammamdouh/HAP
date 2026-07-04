@@ -8,8 +8,11 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "East Projects — Design Programme Control Board | Hassan Allam Properties",
+  title: "HAP Projects — Design Programme Control Board | Hassan Allam Properties",
   description: "Sophisticated master development design and construction schedule tracking control board.",
+  icons: {
+    icon: "/hap.png",
+  },
 };
 
 export default function RootLayout({

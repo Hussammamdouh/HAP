@@ -185,7 +185,7 @@ body {
 }
 
 .kpis.p {
-  grid-template-columns: auto repeat(5, minmax(0, 1fr));
+  grid-template-columns: auto repeat(4, minmax(0, 1fr));
 }
 
 .kpis.s {
@@ -373,10 +373,12 @@ body {
 .tablewrap {
   flex: 1 1 auto;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
 }
 
@@ -426,17 +428,13 @@ tbody tr.od td:first-child {
   box-shadow: inset 3px 0 0 var(--r);
 }
 
-td.idx {
-  color: var(--mut);
-  font-size: .82em;
-  width: 2.2vw;
-  text-align: right;
-}
 
 td.stage {
   font-weight: 600;
-  max-width: 0;
   width: 26%;
+  text-align: center;
+  white-space: normal;
+  word-break: break-word; /* ponytail: allow word wrapping */
 }
 
 td.stage .ph {
@@ -445,24 +443,29 @@ td.stage .ph {
   font-weight: 500;
   font-size: .78em;
   margin-top: .2vh;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word; /* ponytail: allow word wrapping */
 }
 
 td.scope {
   color: var(--ink2);
-  white-space: nowrap;
+  white-space: normal;
+  width: 28%;
+  word-break: break-word; /* ponytail: allow word wrapping */
 }
 
 td.owner {
   font-weight: 600;
-  white-space: nowrap;
+  white-space: normal;
+  width: 14%;
+  word-break: break-word; /* ponytail: allow word wrapping */
 }
 
 td.cons {
   color: var(--ink2);
-  white-space: nowrap;
+  white-space: normal;
+  width: 14%;
+  word-break: break-word; /* ponytail: allow word wrapping */
 }
 
 td.date {
