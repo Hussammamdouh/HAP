@@ -624,30 +624,78 @@ export default function ControlBoardDashboard() {
 
                 {/* Portfolio level KPIs */}
                 <div className="kpis p">
+                  {/* Completed pie chart */}
                   <div className="donut glass-panel">
                     <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
                       <svg className="w-full h-full" viewBox="0 0 100 100">
                         <circle cx="50" cy="50" r="42" className="stroke-white/10" strokeWidth="6" fill="transparent" />
-                        <circle 
-                          cx="50" 
-                          cy="50" 
-                          r="42" 
-                          className="stroke-[#34c6a6] progress-ring-circle" 
-                          strokeWidth="6" 
-                          fill="transparent" 
-                          strokeDasharray="263.89" 
+                        <circle cx="50" cy="50" r="42" className="stroke-[#46c08a] progress-ring-circle" strokeWidth="6" fill="transparent"
+                          strokeDasharray="263.89"
                           strokeDashoffset={263.89 - (263.89 * portfolioStats.completionPercent) / 100}
-                          strokeLinecap="round"
-                        />
+                          strokeLinecap="round" />
                       </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-white font-mono">{portfolioStats.completionPercent}%</span>
+                      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white font-mono">{portfolioStats.completionPercent}%</span>
                     </div>
                     <div className="meta">
-                      <div className="lab text-[10px] tracking-[.16em] uppercase text-[#7e95ab]">Overall Completion</div>
-                      <div className="big text-[22px] font-bold mt-[0.3vh] text-white font-serif-lux">
-                        {portfolioStats.completed} / {portfolioStats.total} <small className="text-[12px] text-[#aebfd1] font-semibold font-sans">Tasks</small>
+                      <div className="lab text-[10px] tracking-[.16em] uppercase text-[#7e95ab]">Completed</div>
+                      <div className="big text-[22px] font-bold mt-[0.3vh] text-[#46c08a] font-serif-lux">
+                        {portfolioStats.completed} <small className="text-[12px] text-[#aebfd1] font-semibold font-sans">/ {portfolioStats.total}</small>
                       </div>
                     </div>
+                  </div>
+
+                  {/* In Progress pie chart */}
+                  <div className="donut glass-panel">
+                    {(() => {
+                      const pct = portfolioStats.total > 0 ? Math.round((portfolioStats.inProgress / portfolioStats.total) * 1000) / 10 : 0;
+                      return (
+                        <>
+                          <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
+                            <svg className="w-full h-full" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="42" className="stroke-white/10" strokeWidth="6" fill="transparent" />
+                              <circle cx="50" cy="50" r="42" className="stroke-[#f1a73a] progress-ring-circle" strokeWidth="6" fill="transparent"
+                                strokeDasharray="263.89"
+                                strokeDashoffset={263.89 - (263.89 * pct) / 100}
+                                strokeLinecap="round" />
+                            </svg>
+                            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white font-mono">{pct}%</span>
+                          </div>
+                          <div className="meta">
+                            <div className="lab text-[10px] tracking-[.16em] uppercase text-[#7e95ab]">In Progress</div>
+                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#f1a73a] font-serif-lux">
+                              {portfolioStats.inProgress} <small className="text-[12px] text-[#aebfd1] font-semibold font-sans">/ {portfolioStats.total}</small>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Delayed pie chart */}
+                  <div className="donut glass-panel">
+                    {(() => {
+                      const pct = portfolioStats.total > 0 ? Math.round((portfolioStats.delayed / portfolioStats.total) * 1000) / 10 : 0;
+                      return (
+                        <>
+                          <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
+                            <svg className="w-full h-full" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="42" className="stroke-white/10" strokeWidth="6" fill="transparent" />
+                              <circle cx="50" cy="50" r="42" className="stroke-[#ff5a5f] progress-ring-circle" strokeWidth="6" fill="transparent"
+                                strokeDasharray="263.89"
+                                strokeDashoffset={263.89 - (263.89 * pct) / 100}
+                                strokeLinecap="round" />
+                            </svg>
+                            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white font-mono">{pct}%</span>
+                          </div>
+                          <div className="meta">
+                            <div className="lab text-[10px] tracking-[.16em] uppercase text-[#7e95ab]">Delayed</div>
+                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#ff5a5f] font-serif-lux">
+                              {portfolioStats.delayed} <small className="text-[12px] text-[#aebfd1] font-semibold font-sans">/ {portfolioStats.total}</small>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <div className="kpi">
@@ -668,58 +716,22 @@ export default function ControlBoardDashboard() {
                     <div className="foot mt-1">All active programme stages</div>
                   </div>
 
-                  <div className="kpi ok">
-                    <div className="lab">Completed</div>
-                    <div className="val text-[#46c08a] font-serif-lux">{portfolioStats.completed}</div>
-                    <div className="w-full h-5 mt-1 overflow-hidden opacity-50">
-                      <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="glow-green" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#46c08a" stopOpacity="0.3" />
-                            <stop offset="100%" stopColor="#46c08a" stopOpacity="0" />
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,25 Q20,22 40,18 T80,10 T100,5" fill="none" stroke="#46c08a" strokeWidth="1.5" />
-                        <path d="M0,25 Q20,22 40,18 T80,10 T100,5 L100,30 L0,30 Z" fill="url(#glow-green)" />
-                      </svg>
-                    </div>
-                    <div className="foot mt-1">Tasks executed successfully</div>
-                  </div>
-
                   <div className="kpi">
-                    <div className="lab">In Progress</div>
-                    <div className="val text-[#f1a73a] font-serif-lux">{portfolioStats.inProgress}</div>
+                    <div className="lab">Not Started</div>
+                    <div className="val text-[#7e95ab] font-serif-lux">{portfolioStats.notStarted}</div>
                     <div className="w-full h-5 mt-1 overflow-hidden opacity-50">
                       <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
                         <defs>
-                          <linearGradient id="glow-amber" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#f1a73a" stopOpacity="0.3" />
-                            <stop offset="100%" stopColor="#f1a73a" stopOpacity="0" />
+                          <linearGradient id="glow-grey" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#7e95ab" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="#7e95ab" stopOpacity="0" />
                           </linearGradient>
                         </defs>
-                        <path d="M0,20 Q15,10 30,22 T60,12 T90,18 T100,10" fill="none" stroke="#f1a73a" strokeWidth="1.5" />
-                        <path d="M0,20 Q15,10 30,22 T60,12 T90,18 T100,10 L100,30 L0,30 Z" fill="url(#glow-amber)" />
+                        <path d="M0,20 Q25,22 50,18 T100,20" fill="none" stroke="#7e95ab" strokeWidth="1.5" />
+                        <path d="M0,20 Q25,22 50,18 T100,20 L100,30 L0,30 Z" fill="url(#glow-grey)" />
                       </svg>
                     </div>
-                    <div className="foot mt-1">Currently active design stages</div>
-                  </div>
-
-                  <div className="kpi alarm">
-                    <div className="lab">Delayed Tasks</div>
-                    <div className="val text-[#ff5a5f] font-serif-lux">{portfolioStats.delayed}</div>
-                    <div className="w-full h-5 mt-1 overflow-hidden opacity-50">
-                      <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="glow-red-delayed" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#ff5a5f" stopOpacity="0.3" />
-                            <stop offset="100%" stopColor="#ff5a5f" stopOpacity="0" />
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,25 Q20,20 40,24 T80,10 T100,2" fill="none" stroke="#ff5a5f" strokeWidth="1.5" />
-                        <path d="M0,25 Q20,20 40,24 T80,10 T100,2 L100,30 L0,30 Z" fill="url(#glow-red-delayed)" />
-                      </svg>
-                    </div>
-                    <div className="foot mt-1">Tasks behind baseline timeline</div>
+                    <div className="foot mt-1">Pending programme stages</div>
                   </div>
                 </div>
 
@@ -784,51 +796,7 @@ export default function ControlBoardDashboard() {
                             </tr>
                           ))}
                           
-                          {/* Total Portfolio row */}
-                          <tr className="portfolio-row">
-                            <td style={{ textAlign: 'left' }}>
-                              <div className="proj !justify-start text-left pl-2">
-                                <span className="dot g"></span>
-                                <span className="text-white font-bold">TOTAL PORTFOLIO</span>
-                              </div>
-                            </td>
-                            <td>
-                              <div className="flex items-center justify-center gap-3">
-                                <div className="bar flex-grow max-w-[150px]">
-                                  <i style={{ width: `${portfolioStats.completionPercent}%` }}></i>
-                                </div>
-                                <span className="text-[12px] font-bold font-mono text-white">{portfolioStats.completionPercent}%</span>
-                              </div>
-                            </td>
-                            <td className="num font-bold font-mono text-center">{portfolioStats.total}</td>
-                            <td className="num font-bold font-mono text-center text-[#46c08a]">{portfolioStats.completed}</td>
-                            <td className="num font-bold font-mono text-center text-[#f1a73a]">{portfolioStats.inProgress}</td>
-                            <td className="num font-bold font-mono text-center text-[#7e95ab]">{portfolioStats.notStarted}</td>
-                            <td className="num font-bold font-mono text-center text-[#ff5a5f]">{portfolioStats.delayed}</td>
-                            <td className="num font-bold font-mono text-center text-[#aebfd1]">
-                              {(() => {
-                                const dates = phaseStats.map(p => p.baselineEnd).filter(d => d !== '—');
-                                if (dates.length === 0) return '—';
-                                return [...dates].sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[dates.length - 1];
-                              })()}
-                            </td>
-                            <td className="num font-bold font-mono text-center text-[#aebfd1]">
-                              {(() => {
-                                const dates = phaseStats.map(p => p.forecastEnd).filter(d => d !== '—');
-                                if (dates.length === 0) return '—';
-                                return [...dates].sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[dates.length - 1];
-                              })()}
-                            </td>
-                            <td className="num var text-center font-mono font-bold">
-                              {totalPortfolioVariance > 0 ? (
-                                <span className="late text-[#ff5a5f]">+{totalPortfolioVariance}d</span>
-                              ) : totalPortfolioVariance < 0 ? (
-                                <span className="early text-[#46c08a]">{totalPortfolioVariance}d</span>
-                              ) : (
-                                <span className="early text-[#46c08a]">On Time</span>
-                              )}
-                            </td>
-                          </tr>
+
                         </tbody>
                       </table>
                     </div>
@@ -907,10 +875,10 @@ export default function ControlBoardDashboard() {
                           <div className="min-w-0">
                             <div className="text-[16px] font-bold text-white font-serif-lux">{phase.completed} / {phase.total} Complete</div>
                             <div className="text-[10px] text-[#7e95ab] mt-0.5">
-                              {phase.delayed > 0 ? (
-                                <span>Accumulated delay: <b className="text-[#ff5a5f]">+{phase.totalDelayDays}d</b> ({phase.delayed} tasks)</span>
+                              {phase.projectVarianceDays !== 0 ? (
+                                <span>Project variance: <b className={phase.projectVarianceDays > 0 ? 'text-[#ff5a5f]' : 'text-[#46c08a]'}>{phase.projectVarianceDays > 0 ? '+' : ''}{phase.projectVarianceDays}d</b></span>
                               ) : (
-                                <span>All active milestones on track</span>
+                                <span>Project on schedule</span>
                               )}
                             </div>
                           </div>
@@ -1004,7 +972,7 @@ export default function ControlBoardDashboard() {
                       {/* Column 3: Blocker Alerts / Schedule Variance Log */}
                       <div className="flex flex-col sumtable p-4 h-full">
                         <div className="bh font-bold text-[14px] text-white flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
-                          <span>Blocker & Delay Alerts</span>
+                          <span>Delayed Tasks</span>
                           <span className="text-[10px] text-[#ff5a5f] uppercase font-bold tracking-widest font-sans flex items-center gap-1">
                             <AlertTriangle size={11} className="animate-pulse" />
                             Variance
