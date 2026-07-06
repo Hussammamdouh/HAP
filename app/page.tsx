@@ -268,9 +268,10 @@ export default function ControlBoardDashboard() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeTab, handlePlayPause, handleNext, handlePrev]);
 
-  // Slideshow Auto-cycling Timer loop
+  // Slideshow Auto-cycling Timer loop (portfolio slide only — project slides use scroll-driven advance)
   useEffect(() => {
     if (!isPlaying) return;
+    if (slideIndex !== 0) return; // project slides are driven by scroll completion
 
     const step = (CYCLE_INTERVAL_MS / CYCLE_DURATION_MS) * 100;
     const interval = setInterval(() => {
@@ -285,6 +286,83 @@ export default function ControlBoardDashboard() {
     }, CYCLE_INTERVAL_MS);
 
     return () => clearInterval(interval);
+  }, [isPlaying, slideIndex, projectsList.length]);
+
+  // Auto-scroll all 3 columns concurrently on project slides; advance slide when all done
+  useEffect(() => {
+    if (!isPlaying) return;
+    if (slideIndex === 0) return; // portfolio slide uses timer
+
+    const MAX_SLIDE_MS = 55000; // cap scroll phase at 55s
+    const FPS          = 60;
+    const SETTLE_MS    = 700;   // wait for slide transition (~600ms) + buffer
+
+    let rafId: number;
+    let timers: ReturnType<typeof setTimeout>[] = [];
+    let done = false;
+    setProgress(0);
+
+    const advance = () => {
+      if (done) return;
+      done = true;
+      setProgress(100);
+      const t = setTimeout(() => {
+        const total = projectsList.length + 1;
+        setSlideIndex(curr => (curr + 1) % total);
+        setProgress(0);
+      }, 1000);
+      timers.push(t);
+    };
+
+    const t = setTimeout(() => {
+      // Query live DOM — reliable because slide is position:absolute (always in layout)
+      const cols = Array.from(
+        document.querySelectorAll<HTMLDivElement>(`[data-slide-col="${slideIndex}"]`)
+      );
+
+      // Reset to top
+      cols.forEach(el => { el.scrollTop = 0; });
+
+      const maxScrollable = Math.max(
+        ...cols.map(el => Math.max(0, el.scrollHeight - el.clientHeight)),
+        0
+      );
+
+      // No scrollable content — dwell 8s then move on
+      if (maxScrollable < 2) {
+        timers.push(setTimeout(advance, 8000));
+        return;
+      }
+
+      const pxPerFrame = Math.max(0.5, maxScrollable / (MAX_SLIDE_MS / 1000 * FPS));
+
+      const tick = () => {
+        if (done) return;
+        let allDone = true;
+        cols.forEach(el => {
+          const rem = el.scrollHeight - el.clientHeight - el.scrollTop;
+          if (rem > 0.5) { el.scrollTop += Math.min(pxPerFrame, rem); allDone = false; }
+        });
+
+        const pcts = cols.map(el =>
+          el.scrollHeight <= el.clientHeight ? 100
+            : Math.min(100, (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100)
+        );
+        setProgress(Math.min(...pcts));
+
+        if (allDone) { advance(); return; }
+        rafId = requestAnimationFrame(tick);
+      };
+
+      rafId = requestAnimationFrame(tick);
+    }, SETTLE_MS);
+    timers.push(t);
+
+    return () => {
+      done = true;
+      cancelAnimationFrame(rafId);
+      timers.forEach(clearTimeout);
+    };
   }, [isPlaying, slideIndex, projectsList.length]);
 
   // Unique scopes in the dataset
@@ -885,7 +963,10 @@ export default function ControlBoardDashboard() {
                         </div>
 
                         {/* List of Scope progress bars */}
-                        <div className="space-y-4 flex-grow overflow-y-auto pr-1 scrollable-y">
+                        <div
+                          className="space-y-4 flex-grow overflow-y-auto pr-1 scrollable-y"
+                          data-slide-col={sIdx}
+                        >
                           {scopesList.map((scope, sIdx) => (
                             <div key={sIdx} className="space-y-1.5">
                               <div className="flex justify-between items-center text-[11px]">
@@ -925,7 +1006,10 @@ export default function ControlBoardDashboard() {
                           <span className="text-[10px] text-[#7e95ab] uppercase font-bold tracking-widest font-sans">Next Steps</span>
                         </div>
                         
-                        <div className="space-y-3.5 flex-grow overflow-y-auto pr-1 scrollable-y">
+                        <div
+                          className="space-y-3.5 flex-grow overflow-y-auto pr-1 scrollable-y"
+                          data-slide-col={sIdx}
+                        >
                           {upcomingMilestones.map((t, idx) => {
                             const remainingDays = t.durationActualWeeks !== null ? t.durationActualWeeks : getRemainingDays(t.fFinish);
                             return (
@@ -979,7 +1063,10 @@ export default function ControlBoardDashboard() {
                           </span>
                         </div>
                         
-                        <div className="space-y-3.5 flex-grow overflow-y-auto pr-1 scrollable-y">
+                        <div
+                          className="space-y-3.5 flex-grow overflow-y-auto pr-1 scrollable-y"
+                          data-slide-col={sIdx}
+                        >
                           {delayedMilestones.map((t, idx) => {
                             const delay = getTaskVariance(t);
                             return (
