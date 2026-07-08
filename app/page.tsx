@@ -428,13 +428,8 @@ export default function ControlBoardDashboard() {
       // Retrieve variance of the project itself from task metadata (fetched from Cell J1 of the tab)
       const projectVarianceDays = projectTasks[0]?.durationMonths || 0;
 
-      // Determine project health color dot
-      let healthColor = 'g';
-      if (delayed >= 5) {
-        healthColor = 'r';
-      } else if (delayed > 0) {
-        healthColor = 'a';
-      }
+      // Determine project health color dot: red if the project has any schedule variance, green otherwise
+      const healthColor = projectVarianceDays !== 0 ? 'r' : 'g';
 
       return {
         name: projectName,
@@ -799,22 +794,31 @@ export default function ControlBoardDashboard() {
                     <div className="foot mt-1">All active programme stages</div>
                   </div>
 
-                  <div className="kpi">
-                    <div className="lab">Not Started</div>
-                    <div className="val text-[#7e95ab] font-serif-lux">{portfolioStats.notStarted}</div>
-                    <div className="w-full h-5 mt-1 overflow-hidden opacity-50">
-                      <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="glow-grey" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#7e95ab" stopOpacity="0.3" />
-                            <stop offset="100%" stopColor="#7e95ab" stopOpacity="0" />
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,20 Q25,22 50,18 T100,20" fill="none" stroke="#7e95ab" strokeWidth="1.5" />
-                        <path d="M0,20 Q25,22 50,18 T100,20 L100,30 L0,30 Z" fill="url(#glow-grey)" />
-                      </svg>
-                    </div>
-                    <div className="foot mt-1">Pending programme stages</div>
+                  {/* Not Started pie chart */}
+                  <div className="donut glass-panel">
+                    {(() => {
+                      const pct = portfolioStats.total > 0 ? Math.round((portfolioStats.notStarted / portfolioStats.total) * 1000) / 10 : 0;
+                      return (
+                        <>
+                          <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
+                            <svg className="w-full h-full" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="42" className="stroke-white/10" strokeWidth="6" fill="transparent" />
+                              <circle cx="50" cy="50" r="42" className="stroke-[#7e95ab] progress-ring-circle" strokeWidth="6" fill="transparent"
+                                strokeDasharray="263.89"
+                                strokeDashoffset={263.89 - (263.89 * pct) / 100}
+                                strokeLinecap="round" />
+                            </svg>
+                            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white font-mono">{pct}%</span>
+                          </div>
+                          <div className="meta">
+                            <div className="lab text-[10px] tracking-[.16em] uppercase text-[#7e95ab]">Not Started</div>
+                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#7e95ab] font-serif-lux">
+                              {portfolioStats.notStarted} <small className="text-[12px] text-[#aebfd1] font-semibold font-sans">/ {portfolioStats.total}</small>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -922,42 +926,42 @@ export default function ControlBoardDashboard() {
                 return (
                   <div key={pIdx} className={`slide ${slideIndex === sIdx ? 'on' : ''}`}>
                     <div className="slide-head flex items-end gap-[1.2vw] mb-[1.4vh] flex-none">
-                      <span className="tag text-[12px] tracking-[.26em] text-[#34c6a6] font-semibold uppercase">Hassan Allam Properties</span>
+                      <span className="tag text-[13px] tracking-[.26em] text-[#34c6a6] font-semibold uppercase">Hassan Allam Properties</span>
                       <h1 className="text-[26px] md:text-[34px] font-bold tracking-tight text-white leading-none">{phase.name}</h1>
-                      <span className="pagebadge text-[11px] font-bold text-[#34c6a6] bg-[#34c6a6]/12 border border-[#34c6a6]/38 px-[0.8vw] py-[0.3vh] rounded-full self-center">Project Control Board</span>
+                      <span className="pagebadge text-[12px] font-bold text-[#34c6a6] bg-[#34c6a6]/12 border border-[#34c6a6]/38 px-[0.8vw] py-[0.3vh] rounded-full self-center">Project Control Board</span>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow overflow-hidden min-h-[30vh]">
-                      
+
                       {/* Column 1: Scope Progress List */}
                       <div className="flex flex-col sumtable p-4 h-full">
-                        <div className="bh font-bold text-[14px] text-white flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
+                        <div className="bh font-bold text-[15px] text-white flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
                           <span>Scope Progress Breakdown</span>
-                          <span className="text-[10px] text-[#7e95ab] uppercase font-bold tracking-widest font-sans">Domain Health</span>
+                          <span className="text-[11px] text-[#7e95ab] uppercase font-bold tracking-widest font-sans">Domain Health</span>
                         </div>
-                        
+
                         {/* Overall health card block */}
                         <div className="flex items-center gap-4 bg-white/5 border border-white/5 rounded-2xl p-4 mb-4 flex-none">
                           <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
                             <svg className="w-full h-full" viewBox="0 0 100 100">
                               <circle cx="50" cy="50" r="42" className="stroke-white/10" strokeWidth="6" fill="transparent" />
-                              <circle 
-                                cx="50" 
-                                cy="50" 
-                                r="42" 
-                                className="stroke-[#34c6a6] progress-ring-circle" 
-                                strokeWidth="6" 
-                                fill="transparent" 
-                                strokeDasharray="263.89" 
+                              <circle
+                                cx="50"
+                                cy="50"
+                                r="42"
+                                className="stroke-[#34c6a6] progress-ring-circle"
+                                strokeWidth="6"
+                                fill="transparent"
+                                strokeDasharray="263.89"
                                 strokeDashoffset={263.89 - (263.89 * phase.completionPercent) / 100}
                                 strokeLinecap="round"
                               />
                             </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-[12px] font-bold text-white font-mono">{phase.completionPercent}%</span>
+                            <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-white font-mono">{phase.completionPercent}%</span>
                           </div>
                           <div className="min-w-0">
-                            <div className="text-[16px] font-bold text-white font-serif-lux">{phase.completed} / {phase.total} Complete</div>
-                            <div className="text-[10px] text-[#7e95ab] mt-0.5">
+                            <div className="text-[17px] font-bold text-white font-serif-lux">{phase.completed} / {phase.total} Complete</div>
+                            <div className="text-[11px] text-[#7e95ab] mt-0.5">
                               {phase.projectVarianceDays !== 0 ? (
                                 <span>Project variance: <b className={phase.projectVarianceDays > 0 ? 'text-[#ff5a5f]' : 'text-[#46c08a]'}>{phase.projectVarianceDays > 0 ? '+' : ''}{phase.projectVarianceDays}d</b></span>
                               ) : (
@@ -974,19 +978,19 @@ export default function ControlBoardDashboard() {
                         >
                           {scopesList.map((scope, sIdx) => (
                             <div key={sIdx} className="space-y-1.5">
-                              <div className="flex justify-between items-center text-[11px]">
+                              <div className="flex justify-between items-center text-[12px]">
                                 <span className="text-white font-semibold">{scope.name}</span>
                                 <span className="text-[#aebfd1] font-mono">{Math.round(scope.percent)}% <small className="text-[#7e95ab]">({scope.completed}/{scope.total})</small></span>
                               </div>
                               <div className="w-full h-2 rounded-full bg-[#0b1d2e] overflow-hidden flex border border-white/5 relative">
-                                <div 
+                                <div
                                   style={{ width: `${scope.percent}%` }}
                                   className="h-full bg-gradient-to-r from-[#1f7a5e] to-[#34c6a6] relative"
                                 >
                                   <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 w-full h-full animate-[pulse_2s_infinite]" />
                                 </div>
                               </div>
-                              <div className="flex justify-between items-center text-[9px] text-[#7e95ab] font-mono mt-0.5">
+                              <div className="flex justify-between items-center text-[10px] text-[#7e95ab] font-mono mt-0.5">
                                 <span>Baseline: <b className="text-[#aebfd1] font-normal">{scope.baselineEnd}</b></span>
                                 <span>Forecast: <b className="text-[#aebfd1] font-normal">{scope.forecastEnd}</b></span>
                               </div>
@@ -994,7 +998,7 @@ export default function ControlBoardDashboard() {
                                 const activeTask = phase.tasks.find(t => t.scope === scope.name && t.status === 'In Progress');
                                 if (!activeTask) return null;
                                 return (
-                                  <div className="text-[10px] text-[#7e95ab] mt-1 truncate pl-1 border-l-2 border-[#f1a73a]/60">
+                                  <div className="text-[11px] text-[#7e95ab] mt-1 truncate pl-1 border-l-2 border-[#f1a73a]/60">
                                     Active: <span className="text-[#f1a73a] font-medium" title={activeTask.stage}>{activeTask.stage}</span>
                                   </div>
                                 );
@@ -1006,11 +1010,11 @@ export default function ControlBoardDashboard() {
 
                       {/* Column 2: Critical Upcoming Milestones */}
                       <div className="flex flex-col sumtable p-4 h-full">
-                        <div className="bh font-bold text-[14px] text-white flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
+                        <div className="bh font-bold text-[15px] text-white flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
                           <span>Critical Upcoming Milestones</span>
-                          <span className="text-[10px] text-[#7e95ab] uppercase font-bold tracking-widest font-sans">Next Steps</span>
+                          <span className="text-[11px] text-[#7e95ab] uppercase font-bold tracking-widest font-sans">Next Steps</span>
                         </div>
-                        
+
                         <div
                           className="space-y-3.5 flex-grow overflow-y-auto pr-1 scrollable-y"
                           data-slide-col={sIdx}
@@ -1019,13 +1023,13 @@ export default function ControlBoardDashboard() {
                             const remainingDays = t.durationActualWeeks !== null ? t.durationActualWeeks : getRemainingDays(t.fFinish);
                             return (
                               <div key={idx} className="bg-white/5 border border-white/5 hover:border-white/10 transition-colors rounded-xl p-3 flex items-start gap-3">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#34c6a6] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[9px] shrink-0 mt-0.5">
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#34c6a6] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[11px] shrink-0 mt-0.5">
                                   {t.owner ? t.owner.split('/').map(w => w.trim().charAt(0)).join('') : '—'}
                                 </div>
                                 <div className="min-w-0 flex-grow text-left">
                                   <div className="flex items-start justify-between gap-2">
-                                    <span className="text-[9px] font-bold text-[#7e95ab] uppercase tracking-wider block">{t.scope}</span>
-                                    <span className={`text-[9px] font-bold px-1.5 py-0.5 border rounded-md shrink-0 leading-none ${
+                                    <span className="text-[11px] font-bold text-[#7e95ab] uppercase tracking-wider block">{t.scope}</span>
+                                    <span className={`text-[11px] font-bold px-1.5 py-0.5 border rounded-md shrink-0 leading-none ${
                                       remainingDays === null ? 'border-white/10 bg-white/5 text-[#7e95ab]' :
                                       remainingDays < 0 ? 'border-[#ff5a5f]/30 bg-[#ff5a5f]/10 text-[#ff5a5f]' :
                                       remainingDays === 0 ? 'border-[#f1a73a]/30 bg-[#f1a73a]/10 text-[#f1a73a]' :
@@ -1037,12 +1041,12 @@ export default function ControlBoardDashboard() {
                                        `${remainingDays}d left`}
                                     </span>
                                   </div>
-                                  <span className="font-semibold text-white block text-[11px] truncate mt-0.5" title={t.stage}>{t.stage}</span>
-                                  <span className="text-[10px] font-mono text-[#aebfd1] block mt-0.5 flex items-center gap-1">
-                                    <Calendar size={11} className="text-[#34c6a6]" />
+                                  <span className="font-semibold text-white block text-[14px] truncate mt-0.5" title={t.stage}>{t.stage}</span>
+                                  <span className="text-[12px] font-mono text-[#aebfd1] block mt-0.5 flex items-center gap-1">
+                                    <Calendar size={13} className="text-[#34c6a6]" />
                                     Due: {t.fFinish || '—'}
                                   </span>
-                                  <span className="text-[9px] text-[#7e95ab] block mt-1">
+                                  <span className="text-[11px] text-[#7e95ab] block mt-1">
                                     Owner: <b className="text-[#aebfd1] font-semibold">{t.owner || '—'}</b> | Consultant: <b className="text-[#aebfd1] font-semibold">{t.consultant || '—'}</b>
                                   </span>
                                 </div>
@@ -1052,7 +1056,7 @@ export default function ControlBoardDashboard() {
                           {upcomingMilestones.length === 0 && (
                             <div className="flex flex-col items-center justify-center text-center py-20 text-[#7e95ab]">
                               <CheckCircle2 size={32} className="text-[#46c08a] mb-3 opacity-60" />
-                              <span className="text-xs">No pending milestones in this phase.</span>
+                              <span className="text-sm">No pending milestones in this phase.</span>
                             </div>
                           )}
                         </div>
@@ -1060,14 +1064,14 @@ export default function ControlBoardDashboard() {
 
                       {/* Column 3: Blocker Alerts / Schedule Variance Log */}
                       <div className="flex flex-col sumtable p-4 h-full">
-                        <div className="bh font-bold text-[14px] text-white flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
+                        <div className="bh font-bold text-[15px] text-white flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
                           <span>Delayed Tasks</span>
-                          <span className="text-[10px] text-[#ff5a5f] uppercase font-bold tracking-widest font-sans flex items-center gap-1">
-                            <AlertTriangle size={11} className="animate-pulse" />
+                          <span className="text-[11px] text-[#ff5a5f] uppercase font-bold tracking-widest font-sans flex items-center gap-1">
+                            <AlertTriangle size={12} className="animate-pulse" />
                             Variance
                           </span>
                         </div>
-                        
+
                         <div
                           className="space-y-3.5 flex-grow overflow-y-auto pr-1 scrollable-y"
                           data-slide-col={sIdx}
@@ -1076,22 +1080,22 @@ export default function ControlBoardDashboard() {
                             const delay = getTaskVariance(t);
                             return (
                               <div key={idx} className="bg-[#ff5a5f]/5 border border-[#ff5a5f]/15 hover:border-[#ff5a5f]/25 transition-colors rounded-xl p-3 flex items-start gap-3">
-                                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#ff5a5f] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[9px] shrink-0 mt-0.5">
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#ff5a5f] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[11px] shrink-0 mt-0.5">
                                   {t.owner ? t.owner.split('/').map(w => w.trim().charAt(0)).join('') : '—'}
                                 </div>
                                 <div className="min-w-0 flex-grow text-left">
                                   <div className="flex items-start justify-between gap-2">
-                                    <span className="text-[9px] font-bold text-[#ff5a5f] uppercase tracking-wider block">{t.scope}</span>
-                                    <span className="text-[9px] font-bold text-[#ff5a5f] px-1.5 py-0.5 border border-[#ff5a5f]/30 bg-[#ff5a5f]/10 rounded-md shrink-0 font-mono leading-none">
+                                    <span className="text-[11px] font-bold text-[#ff5a5f] uppercase tracking-wider block">{t.scope}</span>
+                                    <span className="text-[11px] font-bold text-[#ff5a5f] px-1.5 py-0.5 border border-[#ff5a5f]/30 bg-[#ff5a5f]/10 rounded-md shrink-0 font-mono leading-none">
                                       {delay > 0 ? `+${delay}d` : `${delay}d`} delay
                                     </span>
                                   </div>
-                                  <span className="font-semibold text-white block text-[11px] truncate mt-0.5" title={t.stage}>{t.stage}</span>
-                                  <span className="text-[10px] font-mono text-[#aebfd1] block mt-0.5 flex items-center gap-1.5">
-                                    <Calendar size={11} className="text-[#ff5a5f]" />
+                                  <span className="font-semibold text-white block text-[14px] truncate mt-0.5" title={t.stage}>{t.stage}</span>
+                                  <span className="text-[12px] font-mono text-[#aebfd1] block mt-0.5 flex items-center gap-1.5">
+                                    <Calendar size={13} className="text-[#ff5a5f]" />
                                     Planned: <b className="text-white font-normal">{t.bFinish || '—'}</b> → Forecast: <b className="text-white font-normal">{t.fFinish || '—'}</b>
                                   </span>
-                                  <span className="text-[9px] text-[#7e95ab] block mt-1">
+                                  <span className="text-[11px] text-[#7e95ab] block mt-1">
                                     Owner: <b className="text-[#aebfd1] font-semibold">{t.owner || '—'}</b> | Consultant: <b className="text-[#aebfd1] font-semibold">{t.consultant || '—'}</b>
                                   </span>
                                 </div>
@@ -1101,8 +1105,8 @@ export default function ControlBoardDashboard() {
                           {delayedMilestones.length === 0 && (
                             <div className="flex flex-col items-center justify-center text-center py-20 text-[#7e95ab] h-full">
                               <CheckCircle2 size={32} className="text-[#46c08a] mb-3 opacity-60 animate-bounce" />
-                              <span className="text-xs text-[#46c08a] font-bold">On Schedule</span>
-                              <span className="text-[10px] text-[#7e95ab] mt-1">All milestones in this phase are tracking to target.</span>
+                              <span className="text-sm text-[#46c08a] font-bold">On Schedule</span>
+                              <span className="text-[11px] text-[#7e95ab] mt-1">All milestones in this phase are tracking to target.</span>
                             </div>
                           )}
                         </div>
