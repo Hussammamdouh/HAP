@@ -206,13 +206,21 @@ export default function ControlBoardDashboard() {
     return () => clearInterval(interval);
   }, [loadTasks]);
 
-  // Dynamic projects list extracted from dataset
+  // Dynamic projects list extracted from dataset, ordered by nearest actual/forecast date
+  // (matches the "Forecast" column shown per project: the latest task finish date)
   const projectsList = useMemo(() => {
-    const projSet = new Set<string>();
+    const datesByProject = new Map<string, number[]>();
     tasks.forEach(t => {
-      if (t.project) projSet.add(t.project);
+      if (!t.project) return;
+      if (!datesByProject.has(t.project)) datesByProject.set(t.project, []);
+      const time = t.fFinish ? new Date(t.fFinish).getTime() : NaN;
+      if (!Number.isNaN(time)) datesByProject.get(t.project)!.push(time);
     });
-    return Array.from(projSet).sort();
+    const projectForecastEnd = (name: string) => {
+      const dates = datesByProject.get(name) || [];
+      return dates.length ? Math.max(...dates) : Infinity;
+    };
+    return Array.from(datesByProject.keys()).sort((a, b) => projectForecastEnd(a) - projectForecastEnd(b));
   }, [tasks]);
 
   // Bidirectional synchronization between slideshow slideIndex and selectedPhase filter
@@ -535,6 +543,13 @@ export default function ControlBoardDashboard() {
       }
 
       return matchesSearch && matchesPhase && matchesScope && matchesStatus && t.status !== 'Complete';
+    }).sort((a, b) => {
+      const da = a.fFinish ? new Date(a.fFinish).getTime() : NaN;
+      const db = b.fFinish ? new Date(b.fFinish).getTime() : NaN;
+      if (Number.isNaN(da) && Number.isNaN(db)) return 0;
+      if (Number.isNaN(da)) return 1;
+      if (Number.isNaN(db)) return -1;
+      return da - db;
     });
   }, [tasks, searchQuery, selectedPhase, selectedScope, selectedStatus]);
 
@@ -684,7 +699,7 @@ export default function ControlBoardDashboard() {
                 <div className="kpis p">
                   <div className="kpi">
                     <div className="lab">Total Scope</div>
-                    <div className="val text-[#f3eee3] font-serif-lux">{portfolioStats.total}</div>
+                    <div className="val text-[#f3eee3]">{portfolioStats.total}</div>
                     <div className="w-full h-5 mt-1 overflow-hidden opacity-50">
                       <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
                         <defs>
@@ -714,7 +729,7 @@ export default function ControlBoardDashboard() {
                     </div>
                     <div className="meta">
                       <div className="lab text-[10px] tracking-[.16em] uppercase text-[#8597a9]">Completed</div>
-                      <div className="big text-[22px] font-bold mt-[0.3vh] text-[#7fb893] font-serif-lux">
+                      <div className="big text-[22px] font-bold mt-[0.3vh] text-[#7fb893]">
                         {portfolioStats.completed} <small className="text-[12px] text-[#c4ceda] font-semibold font-sans">/ {portfolioStats.total}</small>
                       </div>
                     </div>
@@ -738,7 +753,7 @@ export default function ControlBoardDashboard() {
                           </div>
                           <div className="meta">
                             <div className="lab text-[10px] tracking-[.16em] uppercase text-[#8597a9]">In Progress</div>
-                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#d9a64e] font-serif-lux">
+                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#d9a64e]">
                               {portfolioStats.inProgress} <small className="text-[12px] text-[#c4ceda] font-semibold font-sans">/ {portfolioStats.total}</small>
                             </div>
                           </div>
@@ -765,7 +780,7 @@ export default function ControlBoardDashboard() {
                           </div>
                           <div className="meta">
                             <div className="lab text-[10px] tracking-[.16em] uppercase text-[#8597a9]">Delayed</div>
-                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#e0685f] font-serif-lux">
+                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#e0685f]">
                               {portfolioStats.delayed} <small className="text-[12px] text-[#c4ceda] font-semibold font-sans">/ {portfolioStats.total}</small>
                             </div>
                           </div>
@@ -792,7 +807,7 @@ export default function ControlBoardDashboard() {
                           </div>
                           <div className="meta">
                             <div className="lab text-[10px] tracking-[.16em] uppercase text-[#8597a9]">Not Started</div>
-                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#8597a9] font-serif-lux">
+                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#8597a9]">
                               {portfolioStats.notStarted} <small className="text-[12px] text-[#c4ceda] font-semibold font-sans">/ {portfolioStats.total}</small>
                             </div>
                           </div>
@@ -939,7 +954,7 @@ export default function ControlBoardDashboard() {
                             <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-[#f3eee3] font-mono">{phase.completionPercent}%</span>
                           </div>
                           <div className="min-w-0">
-                            <div className="text-[17px] font-bold text-[#f3eee3] font-serif-lux">{phase.completed} / {phase.total} Complete</div>
+                            <div className="text-[17px] font-bold text-[#f3eee3]">{phase.completed} / {phase.total} Complete</div>
                             <div className="text-[11px] text-[#8597a9] mt-0.5">
                               {phase.projectVarianceDays !== 0 ? (
                                 <span>Project variance: <b className={phase.projectVarianceDays > 0 ? 'text-[#e0685f]' : 'text-[#7fb893]'}>{phase.projectVarianceDays > 0 ? '+' : ''}{phase.projectVarianceDays}d</b></span>
