@@ -112,65 +112,70 @@ export default function ControlBoardDashboard() {
   const [tasks, setTasks] = useState<TaskData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch tasks from Supabase
-  useEffect(() => {
-    async function loadTasks() {
-      try {
-        let allData: any[] = [];
-        let from = 0;
-        const limit = 1000;
-        let hasMore = true;
-        
-        while (hasMore) {
-          const { data, error } = await supabase
-            .from('tasks')
-            .select('*')
-            .order('project', { ascending: true })
-            .order('created_at', { ascending: true })
-            .range(from, from + limit - 1);
-            
-          if (error) throw error;
-          
-          if (data && data.length > 0) {
-            allData = [...allData, ...data];
-            from += limit;
-            if (data.length < limit) {
-              hasMore = false;
-            }
-          } else {
+  // Fetch tasks from Supabase (re-run on an interval since these screens run unattended for days —
+  // without a refetch, date-relative stats like "delayed" go stale after the initial page load)
+  const loadTasks = useCallback(async () => {
+    try {
+      let allData: any[] = [];
+      let from = 0;
+      const limit = 1000;
+      let hasMore = true;
+
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from('tasks')
+          .select('*')
+          .order('project', { ascending: true })
+          .order('created_at', { ascending: true })
+          .range(from, from + limit - 1);
+
+        if (error) throw error;
+
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          from += limit;
+          if (data.length < limit) {
             hasMore = false;
           }
+        } else {
+          hasMore = false;
         }
-        
-        const mapped: TaskData[] = allData.map(row => ({
-          project: row.project,
-          phase: row.phase,
-          scope: row.subproject || row.phase,
-          stage: row.task_name,
-          owner: row.owner,
-          consultant: row.consultant,
-          bFinish: row.baseline_finish,
-          fFinish: row.actual_finish || row.baseline_finish,
-          status: row.status,
-          durationDays: row.duration_days,
-          durationWeeks: row.duration_weeks,
-          durationMonths: row.duration_months,
-          baselineStart: row.baseline_start,
-          baselineFinish: row.baseline_finish,
-          durationActualWeeks: row.duration_actual_weeks,
-          actualStart: row.actual_start,
-          actualFinish: row.actual_finish
-        }));
-        
-        setTasks(mapped);
-      } catch (err) {
-        console.error("Failed to load tasks from Supabase:", err);
-      } finally {
-        setIsLoading(false);
       }
+
+      const mapped: TaskData[] = allData.map(row => ({
+        project: row.project,
+        phase: row.phase,
+        scope: row.subproject || row.phase,
+        stage: row.task_name,
+        owner: row.owner,
+        consultant: row.consultant,
+        bFinish: row.baseline_finish,
+        fFinish: row.actual_finish || row.baseline_finish,
+        status: row.status,
+        durationDays: row.duration_days,
+        durationWeeks: row.duration_weeks,
+        durationMonths: row.duration_months,
+        baselineStart: row.baseline_start,
+        baselineFinish: row.baseline_finish,
+        durationActualWeeks: row.duration_actual_weeks,
+        actualStart: row.actual_start,
+        actualFinish: row.actual_finish
+      }));
+
+      setTasks(mapped);
+    } catch (err) {
+      console.error("Failed to load tasks from Supabase:", err);
+    } finally {
+      setIsLoading(false);
     }
+  }, [supabase]);
+
+  useEffect(() => {
     loadTasks();
-  }, []);
+    const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+    const interval = setInterval(loadTasks, REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [loadTasks]);
 
   // Dynamic projects list extracted from dataset
   const projectsList = useMemo(() => {

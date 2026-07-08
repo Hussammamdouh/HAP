@@ -148,6 +148,7 @@ async function importExcel(filePath) {
     
     console.log(`  Detected headers at row ${headerRowNumber}. Reading tasks...`);
     let sheetTaskCount = 0;
+    const blankStatusTasks = [];
     
     // Loop through all data rows under the header row
     for (let r = headerRowNumber + 1; r <= worksheet.rowCount; r++) {
@@ -174,6 +175,10 @@ async function importExcel(filePath) {
         status = 'Complete';
       } else if (rawStatus.includes('progress')) {
         status = 'In Progress';
+      } else if (!rawStatus) {
+        // Blank status cell defaults to "Not Started" but is flagged below so it doesn't
+        // silently masquerade as an explicitly-confirmed status.
+        blankStatusTasks.push(String(task).trim());
       }
       
       const slippage = parseExcelNumber(getCellValue(row.getCell(10)));
@@ -205,6 +210,10 @@ async function importExcel(filePath) {
     }
     
     console.log(`  Parsed ${sheetTaskCount} tasks successfully.`);
+    if (blankStatusTasks.length > 0) {
+      console.log(`  WARNING: ${blankStatusTasks.length} task(s) have a blank Status cell and were defaulted to "Not Started":`);
+      blankStatusTasks.forEach(name => console.log(`    - ${name}`));
+    }
   });
   
   if (allTasks.length === 0) {
