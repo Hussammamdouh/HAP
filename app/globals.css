@@ -3,34 +3,37 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-lux-beige: #fcfaf7;
-  --color-lux-espresso: #25221f;
-  --color-lux-stone: #e0dcd7;
-  --color-lux-charcoal: #1a1714;
-  --color-lux-bone: #e8e6e3;
-  --color-lux-gold: #d4af37;
-  --color-lux-gold-dark: #b89228;
+  --color-lux-beige: #f3eee3;
+  --color-lux-espresso: #101f33;
+  --color-lux-stone: #c4ceda;
+  --color-lux-charcoal: #0a1626;
+  --color-lux-bone: #e6d3a3;
+  --color-lux-gold: #cbb079;
+  --color-lux-gold-dark: #8a7647;
 }
 
+/* Deep ink navy with champagne gold accent — boardroom palette (see demo.html) */
 :root {
-  --field: #0b1d2e;
-  --field2: #0e2438;
-  --panel: #13293e;
-  --panel2: #16314f;
-  --line: rgba(255,255,255,.09);
-  --line2: rgba(255,255,255,.16);
-  --ink: #eaf1f8;
-  --ink2: #aebfd1;
-  --mut: #7e95ab;
-  --teal: #34c6a6;
-  --teal-dim: #1f7a5e;
-  --r: #ff5a5f;
-  --r-bg: rgba(255,90,95,.13);
-  --a: #f1a73a;
-  --a-bg: rgba(241,167,58,.13);
-  --g: #46c08a;
-  --g-bg: rgba(70,192,138,.12);
-  
+  --field: #0a1626;
+  --field2: #0d1c30;
+  --panel: #101f33;
+  --panel2: #142740;
+  --line: rgba(213,196,161,.14);
+  --line2: rgba(213,196,161,.26);
+  --hair: rgba(255,255,255,.06);
+  --ink: #f3eee3;
+  --ink2: #c4ceda;
+  --mut: #8597a9;
+  --teal: #cbb079;
+  --teal-dim: #8a7647;
+  --gold2: #e6d3a3;
+  --r: #e0685f;
+  --r-bg: rgba(224,104,95,.12);
+  --a: #d9a64e;
+  --a-bg: rgba(217,166,78,.13);
+  --g: #7fb893;
+  --g-bg: rgba(127,184,147,.12);
+
   --background: var(--field);
   --foreground: var(--ink);
   --card-bg: var(--panel);
@@ -52,27 +55,17 @@ body {
   background-color: var(--background);
   color: var(--foreground);
   transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
-  font-family: var(--font-outfit), "Segoe UI", system-ui, sans-serif;
+  font-family: var(--font-sans), -apple-system, "Segoe UI", system-ui, sans-serif;
   overflow: hidden; /* Prevent scrolling for a true full-screen presentation app */
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
+  letter-spacing: .01em;
   
   /* Luxury Dark Blue Radial Gradients */
   background-image: 
-    radial-gradient(at 0% 0%, rgba(14, 36, 56, 0.8) 0px, transparent 60%),
-    radial-gradient(at 100% 0%, rgba(52, 198, 166, 0.1) 0px, transparent 60%),
-    radial-gradient(at 50% 50%, rgba(19, 41, 62, 0.5) 0px, transparent 70%);
-}
-
-/* Glassmorphism Panel styles */
-.glass-panel {
-  background: rgba(19, 41, 62, 0.45);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 
-    0 10px 40px rgba(0, 0, 0, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    radial-gradient(at 0% 0%, rgba(13, 28, 48, 0.8) 0px, transparent 60%),
+    radial-gradient(at 100% 0%, rgba(203, 176, 121, 0.1) 0px, transparent 60%),
+    radial-gradient(at 50% 50%, rgba(16, 31, 51, 0.5) 0px, transparent 70%);
 }
 
 /* Background floating glow orbs */
@@ -95,14 +88,14 @@ body {
 .glow-orb-teal {
   width: 400px;
   height: 400px;
-  background: radial-gradient(circle, rgba(52, 198, 166, 0.25) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(203, 176, 121, 0.25) 0%, transparent 70%);
   top: 15%;
   right: 10%;
 }
 .glow-orb-blue {
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, rgba(22, 49, 79, 0.5) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(20, 39, 64, 0.5) 0%, transparent 70%);
   bottom: 8%;
   left: 5%;
   animation-delay: -4s;
@@ -111,6 +104,7 @@ body {
 /* Allow scrolling on interactive sub-containers if needed */
 .scrollable-y {
   overflow-y: auto;
+  will-change: scroll-position;
 }
 
 /* Subtle Technical Grid Overlay */
@@ -123,7 +117,7 @@ body {
 
 /* Serif font style class */
 .font-serif-lux {
-  font-family: var(--font-outfit), sans-serif;
+  font-family: var(--font-serif), Georgia, serif;
 }
 
 /* Progress Circle Gauges */
@@ -169,12 +163,18 @@ body {
   transform: translateY(12px) scale(0.985);
   pointer-events: none;
   transition: opacity .6s cubic-bezier(0.16, 1, 0.3, 1), transform .6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
 }
 
 .slide.on {
   opacity: 1;
   transform: none;
   pointer-events: auto;
+}
+
+/* Inactive slides stay mounted (for crossfade) but shouldn't burn cycles animating off-screen */
+.slide:not(.on), .slide:not(.on) * {
+  animation-play-state: paused !important;
 }
 
 /* KPI styling */
@@ -185,7 +185,7 @@ body {
 }
 
 .kpis.p {
-  grid-template-columns: repeat(3, auto) repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .kpis.s {
@@ -193,18 +193,28 @@ body {
 }
 
 .kpi {
-  background: rgba(19, 41, 62, 0.45);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 14px;
+  background: linear-gradient(180deg, var(--panel), var(--panel2));
+  border: 1px solid var(--line);
+  border-radius: 4px;
   padding: 1.5vh 1.2vw;
   display: flex;
   flex-direction: column;
   justify-content: center;
   min-height: 9.2vh;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
   transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.kpi::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--teal-dim);
+  opacity: .7;
 }
 
 .kpi:hover {
@@ -233,8 +243,16 @@ body {
   margin-left: .25em;
 }
 
+.kpi.alarm::before {
+  background: var(--r);
+}
+
 .kpi.alarm .val {
   color: var(--r);
+}
+
+.kpi.ok::before {
+  background: var(--g);
 }
 
 .kpi.ok .val {
@@ -266,14 +284,24 @@ body {
   display: flex;
   align-items: center;
   gap: 1.1vw;
-  background: rgba(22, 49, 79, 0.45);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 14px;
+  background: linear-gradient(180deg, var(--panel), var(--panel2));
+  border: 1px solid var(--line);
+  border-radius: 4px;
   padding: 1.2vh 1.5vw;
   min-width: 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.donut::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--teal);
+  opacity: .8;
 }
 
 .ring {
@@ -324,14 +352,12 @@ body {
 /* Board table */
 .board {
   flex: 1 1 auto;
-  background: rgba(19, 41, 62, 0.4);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
+  background: linear-gradient(180deg, var(--panel), rgba(16, 31, 51, 0.6));
+  border: 1px solid var(--line);
+  border-radius: 5px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 .board .bh {
@@ -403,7 +429,7 @@ tbody tr {
 }
 
 tbody tr:hover {
-  background-color: rgba(22, 49, 79, 0.5) !important;
+  background-color: rgba(20, 39, 64, 0.5) !important;
   transform: translateY(-1px);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
 }
@@ -501,35 +527,33 @@ td.days {
 .pill.r {
   color: var(--r);
   background: var(--r-bg);
-  border-color: rgba(255, 90, 95, 0.25);
-  box-shadow: 0 0 8px rgba(255, 90, 95, 0.15);
+  border-color: rgba(224, 104, 95, 0.25);
+  box-shadow: 0 0 8px rgba(224, 104, 95, 0.15);
 }
 
 .pill.a {
   color: var(--a);
   background: var(--a-bg);
-  border-color: rgba(241, 167, 58, 0.25);
-  box-shadow: 0 0 8px rgba(241, 167, 58, 0.15);
+  border-color: rgba(217, 166, 78, 0.25);
+  box-shadow: 0 0 8px rgba(217, 166, 78, 0.15);
 }
 
 .pill.g {
   color: var(--g);
   background: var(--g-bg);
-  border-color: rgba(70, 192, 138, 0.25);
-  box-shadow: 0 0 8px rgba(70, 192, 138, 0.15);
+  border-color: rgba(127, 184, 147, 0.25);
+  box-shadow: 0 0 8px rgba(127, 184, 147, 0.15);
 }
 
 /* Summary table */
 .sumtable {
   flex: 1 1 auto;
-  background: rgba(19, 41, 62, 0.4);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
+  background: linear-gradient(180deg, var(--panel), rgba(16, 31, 51, 0.6));
+  border: 1px solid var(--line);
+  border-radius: 5px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 .sumtable .bh {
@@ -643,7 +667,7 @@ td.over b {
 .radar-scan {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, transparent, rgba(52, 198, 166, 0.02) 50%, transparent 100%);
+  background: linear-gradient(to bottom, transparent, rgba(203, 176, 121, 0.02) 50%, transparent 100%);
   height: 250px;
   pointer-events: none;
   z-index: 2;

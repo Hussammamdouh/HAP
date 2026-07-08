@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { 
   Play, 
   Pause, 
@@ -86,19 +86,48 @@ const getTaskVariance = (t: TaskData): number => {
 
 
 
-const CYCLE_DURATION_MS = 12000; // 12 seconds per slide
-const CYCLE_INTERVAL_MS = 100;   // Update progress bar every 100ms
+// Isolated so its 1x/sec tick only re-renders this small subtree, not the whole dashboard.
+function LiveClock() {
+  const [timeStr, setTimeStr] = useState('—');
+  const [dateStr, setDateStr] = useState('—');
+
+  useEffect(() => {
+    const updateClock = () => {
+      const d = new Date();
+      setTimeStr(d.toLocaleTimeString('en-US', { hour12: false }));
+      setDateStr(d.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      }));
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="clock text-right leading-none border-l border-white/10 pl-6">
+      <div className="d text-[14px] font-semibold text-[#f3eee3] tracking-wide">{dateStr}</div>
+      <div className="t text-[11px] text-[#8597a9] font-mono tracking-widest mt-1 uppercase">{timeStr} UT+3</div>
+    </div>
+  );
+}
 
 export default function ControlBoardDashboard() {
   const supabase = createClient();
   const [activeTab, setActiveTab] = useState<'presentation' | 'interactive'>('presentation');
   const [slideIndex, setSlideIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
-  const [progress, setProgress] = useState(0);
+  // Cycle progress bar is updated via direct DOM writes (not React state) since it
+  // changes every animation frame — routing that through setState would re-render
+  // the whole dashboard 60x/sec.
+  const progressBarRef = useRef<HTMLElement>(null);
+  const setProgress = useCallback((pct: number) => {
+    if (progressBarRef.current) progressBarRef.current.style.width = `${pct}%`;
+  }, []);
   
-  // Real-time Clock State
-  const [timeStr, setTimeStr] = useState('—');
-  const [dateStr, setDateStr] = useState('—');
   const [refreshTime, setRefreshTime] = useState('');
 
   // Interactive View Filters State
@@ -211,24 +240,11 @@ export default function ControlBoardDashboard() {
     setProgress(0);
   };
 
-  // Initialize refresh time and clock loop
+  // Initialize refresh time (set once on load; ticking clock lives in <LiveClock /> below
+  // so its 1x/sec update doesn't re-render the whole dashboard tree)
   useEffect(() => {
     const now = new Date();
     setRefreshTime(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-
-    const updateClock = () => {
-      const d = new Date();
-      setTimeStr(d.toLocaleTimeString('en-US', { hour12: false }));
-      setDateStr(d.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      }));
-    };
-    updateClock();
-    const interval = setInterval(updateClock, 1000);
-    return () => clearInterval(interval);
   }, []);
 
   // Slide Index transitions
@@ -273,33 +289,14 @@ export default function ControlBoardDashboard() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeTab, handlePlayPause, handleNext, handlePrev]);
 
-  // Slideshow Auto-cycling Timer loop (portfolio slide only — project slides use scroll-driven advance)
+  // Auto-scroll the slide's scrollable column(s); advance when done.
+  // Portfolio slide (0): 20s. Project slides: 60s.
   useEffect(() => {
     if (!isPlaying) return;
-    if (slideIndex !== 0) return; // project slides are driven by scroll completion
 
-    const step = (CYCLE_INTERVAL_MS / CYCLE_DURATION_MS) * 100;
-    const interval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) {
-          const total = projectsList.length + 1;
-          setSlideIndex(curr => (curr + 1) % total);
-          return 0;
-        }
-        return prev + step;
-      });
-    }, CYCLE_INTERVAL_MS);
-
-    return () => clearInterval(interval);
-  }, [isPlaying, slideIndex, projectsList.length]);
-
-  // Auto-scroll all 3 columns concurrently on project slides; advance slide when all done
-  useEffect(() => {
-    if (!isPlaying) return;
-    if (slideIndex === 0) return; // portfolio slide uses timer
-
-    const MAX_SLIDE_MS = 55000; // cap scroll phase at 55s
-    const FPS          = 60;
+    const isPortfolio  = slideIndex === 0;
+    const MAX_SLIDE_MS = isPortfolio ? 20000 : 60000; // cap scroll phase
+    const FALLBACK_MS  = MAX_SLIDE_MS;                // dwell time if nothing to scroll
     const SETTLE_MS    = 700;   // wait for slide transition (~600ms) + buffer
 
     let rafId: number;
@@ -333,29 +330,26 @@ export default function ControlBoardDashboard() {
         0
       );
 
-      // No scrollable content — dwell 8s then move on
+      // No scrollable content — dwell then move on
       if (maxScrollable < 2) {
-        timers.push(setTimeout(advance, 8000));
+        timers.push(setTimeout(advance, FALLBACK_MS));
         return;
       }
 
-      const pxPerFrame = Math.max(0.5, maxScrollable / (MAX_SLIDE_MS / 1000 * FPS));
+      const targets = cols.map(el => Math.max(0, el.scrollHeight - el.clientHeight));
+      let startTs: number | null = null;
 
-      const tick = () => {
+      // Timestamp-driven (not frame-count-driven) so speed stays correct
+      // regardless of the display's refresh rate or dropped frames.
+      const tick = (ts: number) => {
         if (done) return;
-        let allDone = true;
-        cols.forEach(el => {
-          const rem = el.scrollHeight - el.clientHeight - el.scrollTop;
-          if (rem > 0.5) { el.scrollTop += Math.min(pxPerFrame, rem); allDone = false; }
-        });
+        if (startTs === null) startTs = ts;
+        const t = Math.min(1, (ts - startTs) / MAX_SLIDE_MS);
 
-        const pcts = cols.map(el =>
-          el.scrollHeight <= el.clientHeight ? 100
-            : Math.min(100, (el.scrollTop / (el.scrollHeight - el.clientHeight)) * 100)
-        );
-        setProgress(Math.min(...pcts));
+        cols.forEach((el, i) => { el.scrollTop = targets[i] * t; });
+        setProgress(t * 100);
 
-        if (allDone) { advance(); return; }
+        if (t >= 1) { advance(); return; }
         rafId = requestAnimationFrame(tick);
       };
 
@@ -558,31 +552,31 @@ export default function ControlBoardDashboard() {
   const renderStatusBadge = (status: string, isDelayed: boolean) => {
     if (status === 'Complete') {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase border border-[#46c08a]/30 bg-[#46c08a]/10 text-[#46c08a] shadow-[0_0_8px_rgba(70,192,138,0.1)]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#46c08a] shadow-[0_0_6px_#46c08a]" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase border border-[#7fb893]/30 bg-[#7fb893]/10 text-[#7fb893] shadow-[0_0_8px_rgba(127,184,147,0.1)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#7fb893] shadow-[0_0_6px_#7fb893]" />
           Complete
         </span>
       );
     }
     if (status === 'In Progress') {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase border border-[#f1a73a]/30 bg-[#f1a73a]/10 text-[#f1a73a] shadow-[0_0_8px_rgba(241,167,58,0.1)]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#f1a73a] shadow-[0_0_6px_#f1a73a]" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase border border-[#d9a64e]/30 bg-[#d9a64e]/10 text-[#d9a64e] shadow-[0_0_8px_rgba(217,166,78,0.1)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#d9a64e] shadow-[0_0_6px_#d9a64e]" />
           In Progress
         </span>
       );
     }
     if (isDelayed) {
       return (
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase border border-[#ff5a5f]/30 bg-[#ff5a5f]/10 text-[#ff5a5f] shadow-[0_0_8px_rgba(255,90,95,0.1)]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#ff5a5f] shadow-[0_0_6px_#ff5a5f] animate-pulse" />
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase border border-[#e0685f]/30 bg-[#e0685f]/10 text-[#e0685f] shadow-[0_0_8px_rgba(224,104,95,0.1)]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[#e0685f] shadow-[0_0_6px_#e0685f] animate-pulse" />
           Delayed
         </span>
       );
     }
     return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase border border-white/10 bg-white/5 text-[#7e95ab]">
-        <span className="w-1.5 h-1.5 rounded-full bg-[#7e95ab]/50" />
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold tracking-wider uppercase border border-white/10 bg-white/5 text-[#8597a9]">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#8597a9]/50" />
         Not Started
       </span>
     );
@@ -590,13 +584,13 @@ export default function ControlBoardDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0b1d2e] flex flex-col items-center justify-center text-[#eaf1f8]">
+      <div className="min-h-screen bg-[#0a1626] flex flex-col items-center justify-center text-[#f3eee3]">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 rounded-full border-t-2 border-[#34c6a6] animate-spin" />
-          <h2 className="text-lg font-bold tracking-widest uppercase text-white animate-pulse">
+          <div className="w-16 h-16 rounded-full border-t-2 border-[#cbb079] animate-spin" />
+          <h2 className="text-lg font-bold tracking-widest uppercase text-[#f3eee3] animate-pulse">
             Connecting to Supabase...
           </h2>
-          <p className="text-xs text-[#7e95ab] tracking-wider uppercase">
+          <p className="text-xs text-[#8597a9] tracking-wider uppercase">
             Loading Live Programme Data
           </p>
         </div>
@@ -605,7 +599,7 @@ export default function ControlBoardDashboard() {
   }
 
   return (
-    <div className="flex-grow flex flex-col bg-[#0b1d2e] text-[#eaf1f8] relative overflow-hidden select-none">
+    <div className="flex-grow flex flex-col bg-[#0a1626] text-[#f3eee3] relative overflow-hidden select-none">
       
       {/* Background Floating Pulsing Glow Orbs */}
       <div className="glow-orb glow-orb-teal"></div>
@@ -614,15 +608,15 @@ export default function ControlBoardDashboard() {
       {/* ==========================================
           TOP BAR (BRAND HEADER & LIVE CLOCK)
           ========================================== */}
-      <div className="topbar flex-none h-[9.2vh] min-h-[64px] flex items-center gap-[1.4vw] px-[2.2vw] border-b border-white/10 bg-gradient-to-b from-[#0e2438] to-[#0b1d2e] relative z-40">
+      <div className="topbar flex-none h-[9.2vh] min-h-[64px] flex items-center gap-[1.4vw] px-[2.2vw] border-b border-white/10 bg-gradient-to-b from-[#0d1c30] to-[#0a1626] relative z-40">
         <div className="brand flex items-center gap-[1.1vw]">
           {/* HAP Logo */}
-          <div className="w-[45px] h-[45px] rounded-xl bg-white flex items-center justify-center shadow-lg p-0.5">
+          <div className="w-[45px] h-[45px] rounded-xl flex items-center justify-center p-0.5">
             <img src="/hap.png" alt="HAP Logo" className="w-full h-full object-contain" />
           </div>
           <div className="w-[1px] h-[30px] bg-white/10"></div>
           <div className="brand-text">
-            <span className="text-[12px] sm:text-[14px] font-semibold text-[#34c6a6] tracking-[.32em] uppercase block">
+            <span className="text-[12px] sm:text-[14px] font-semibold text-[#cbb079] tracking-[.32em] uppercase block">
               HAP Projects
             </span>
           </div>
@@ -634,8 +628,8 @@ export default function ControlBoardDashboard() {
             onClick={() => setActiveTab('presentation')}
             className={`px-4 py-1.5 rounded-lg border text-[10px] font-sans font-bold tracking-widest uppercase transition-all duration-200 cursor-pointer ${
               activeTab === 'presentation'
-                ? 'border-[#34c6a6] text-[#34c6a6] bg-[#34c6a6]/5 shadow-[0_0_10px_rgba(52,198,166,0.1)]'
-                : 'border-white/10 text-[#7e95ab] hover:text-[#eaf1f8] hover:border-white/20'
+                ? 'border-[#cbb079] text-[#cbb079] bg-[#cbb079]/5 shadow-[0_0_10px_rgba(203,176,121,0.1)]'
+                : 'border-white/10 text-[#8597a9] hover:text-[#f3eee3] hover:border-white/20'
             }`}
           >
             Presentation Mode
@@ -647,37 +641,23 @@ export default function ControlBoardDashboard() {
             }}
             className={`px-4 py-1.5 rounded-lg border text-[10px] font-sans font-bold tracking-widest uppercase transition-all duration-200 cursor-pointer ${
               activeTab === 'interactive'
-                ? 'border-[#34c6a6] text-[#34c6a6] bg-[#34c6a6]/5 shadow-[0_0_10px_rgba(52,198,166,0.1)]'
-                : 'border-white/10 text-[#7e95ab] hover:text-[#eaf1f8] hover:border-white/20'
+                ? 'border-[#cbb079] text-[#cbb079] bg-[#cbb079]/5 shadow-[0_0_10px_rgba(203,176,121,0.1)]'
+                : 'border-white/10 text-[#8597a9] hover:text-[#f3eee3] hover:border-white/20'
             }`}
           >
             Interactive Control Board
           </button>
         </div>
 
-        <div className="hidden lg:flex items-center gap-6 text-[9px] font-mono tracking-widest text-[#7e95ab] border-l border-white/10 pl-6 mr-4">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#46c08a] shadow-[0_0_8px_#46c08a] animate-pulse" />
-            <span>DB BINDING: ONLINE</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#34c6a6] shadow-[0_0_8px_#34c6a6]" />
-            <span>METRICS: VERIFIED</span>
-          </div>
-        </div>
-
         <div className="flex-grow"></div>
         
         {/* Topbar Clock & Refresh information */}
         <div className="flex items-center gap-8 relative z-50">
-          <div className="fresh text-right text-[11px] text-[#7e95ab] font-sans leading-none hidden md:block">
-            Last update: Today at <b className="text-[#34c6a6] font-semibold">{refreshTime}</b>
+          <div className="fresh text-right text-[11px] text-[#8597a9] font-sans leading-none hidden md:block">
+            Last update: Today at <b className="text-[#cbb079] font-semibold">{refreshTime}</b>
           </div>
           
-          <div className="clock text-right leading-none border-l border-white/10 pl-6">
-            <div className="d text-[14px] font-semibold text-[#eaf1f8] tracking-wide">{dateStr}</div>
-            <div className="t text-[11px] text-[#7e95ab] font-mono tracking-widest mt-1 uppercase">{timeStr} UT+3</div>
-          </div>
+          <LiveClock />
         </div>
       </div>
 
@@ -695,35 +675,53 @@ export default function ControlBoardDashboard() {
               {/* SLIDE 0: PORTFOLIO PROGRAMME OVERVIEW */}
               <div className={`slide ${slideIndex === 0 ? 'on' : ''}`}>
                 <div className="slide-head flex items-end gap-[1.2vw] mb-[1.4vh]">
-                  <span className="tag text-[12px] tracking-[.26em] text-[#34c6a6] font-semibold uppercase">Hassan Allam Properties</span>
-                  <h1 className="text-[26px] md:text-[34px] font-bold tracking-tight text-white leading-none">Portfolio Programme Summary</h1>
-                  <span className="pagebadge text-[11px] font-bold text-[#34c6a6] bg-[#34c6a6]/12 border border-[#34c6a6]/38 px-[0.8vw] py-[0.3vh] rounded-full self-center">Portfolio Overview</span>
+                  <span className="tag text-[12px] tracking-[.26em] text-[#cbb079] font-semibold uppercase">Hassan Allam Properties</span>
+                  <h1 className="text-[26px] md:text-[34px] font-bold tracking-tight text-[#f3eee3] leading-none">Portfolio Programme Summary</h1>
+                  <span className="pagebadge text-[11px] font-bold text-[#cbb079] bg-[#cbb079]/12 border border-[#cbb079]/38 px-[0.8vw] py-[0.3vh] rounded-full self-center">Portfolio Overview</span>
                 </div>
 
                 {/* Portfolio level KPIs */}
                 <div className="kpis p">
+                  <div className="kpi">
+                    <div className="lab">Total Scope</div>
+                    <div className="val text-[#f3eee3] font-serif-lux">{portfolioStats.total}</div>
+                    <div className="w-full h-5 mt-1 overflow-hidden opacity-50">
+                      <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="glow-teal" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#cbb079" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="#cbb079" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M0,25 T20,24 T40,24 T60,25 T80,24 T100,24" fill="none" stroke="#cbb079" strokeWidth="1.5" />
+                        <path d="M0,25 T20,24 T40,24 T60,25 T80,24 T100,24 L100,30 L0,30 Z" fill="url(#glow-teal)" />
+                      </svg>
+                    </div>
+                    <div className="foot mt-1">All active programme stages</div>
+                  </div>
+
                   {/* Completed pie chart */}
-                  <div className="donut glass-panel">
+                  <div className="donut">
                     <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
                       <svg className="w-full h-full" viewBox="0 0 100 100">
                         <circle cx="50" cy="50" r="42" className="stroke-white/10" strokeWidth="6" fill="transparent" />
-                        <circle cx="50" cy="50" r="42" className="stroke-[#46c08a] progress-ring-circle" strokeWidth="6" fill="transparent"
+                        <circle cx="50" cy="50" r="42" className="stroke-[#7fb893] progress-ring-circle" strokeWidth="6" fill="transparent"
                           strokeDasharray="263.89"
                           strokeDashoffset={263.89 - (263.89 * portfolioStats.completionPercent) / 100}
                           strokeLinecap="round" />
                       </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white font-mono">{portfolioStats.completionPercent}%</span>
+                      <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-[#f3eee3] font-mono">{portfolioStats.completionPercent}%</span>
                     </div>
                     <div className="meta">
-                      <div className="lab text-[10px] tracking-[.16em] uppercase text-[#7e95ab]">Completed</div>
-                      <div className="big text-[22px] font-bold mt-[0.3vh] text-[#46c08a] font-serif-lux">
-                        {portfolioStats.completed} <small className="text-[12px] text-[#aebfd1] font-semibold font-sans">/ {portfolioStats.total}</small>
+                      <div className="lab text-[10px] tracking-[.16em] uppercase text-[#8597a9]">Completed</div>
+                      <div className="big text-[22px] font-bold mt-[0.3vh] text-[#7fb893] font-serif-lux">
+                        {portfolioStats.completed} <small className="text-[12px] text-[#c4ceda] font-semibold font-sans">/ {portfolioStats.total}</small>
                       </div>
                     </div>
                   </div>
 
                   {/* In Progress pie chart */}
-                  <div className="donut glass-panel">
+                  <div className="donut">
                     {(() => {
                       const pct = portfolioStats.total > 0 ? Math.round((portfolioStats.inProgress / portfolioStats.total) * 1000) / 10 : 0;
                       return (
@@ -731,17 +729,17 @@ export default function ControlBoardDashboard() {
                           <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
                             <svg className="w-full h-full" viewBox="0 0 100 100">
                               <circle cx="50" cy="50" r="42" className="stroke-white/10" strokeWidth="6" fill="transparent" />
-                              <circle cx="50" cy="50" r="42" className="stroke-[#f1a73a] progress-ring-circle" strokeWidth="6" fill="transparent"
+                              <circle cx="50" cy="50" r="42" className="stroke-[#d9a64e] progress-ring-circle" strokeWidth="6" fill="transparent"
                                 strokeDasharray="263.89"
                                 strokeDashoffset={263.89 - (263.89 * pct) / 100}
                                 strokeLinecap="round" />
                             </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white font-mono">{pct}%</span>
+                            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-[#f3eee3] font-mono">{pct}%</span>
                           </div>
                           <div className="meta">
-                            <div className="lab text-[10px] tracking-[.16em] uppercase text-[#7e95ab]">In Progress</div>
-                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#f1a73a] font-serif-lux">
-                              {portfolioStats.inProgress} <small className="text-[12px] text-[#aebfd1] font-semibold font-sans">/ {portfolioStats.total}</small>
+                            <div className="lab text-[10px] tracking-[.16em] uppercase text-[#8597a9]">In Progress</div>
+                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#d9a64e] font-serif-lux">
+                              {portfolioStats.inProgress} <small className="text-[12px] text-[#c4ceda] font-semibold font-sans">/ {portfolioStats.total}</small>
                             </div>
                           </div>
                         </>
@@ -750,7 +748,7 @@ export default function ControlBoardDashboard() {
                   </div>
 
                   {/* Delayed pie chart */}
-                  <div className="donut glass-panel">
+                  <div className="donut">
                     {(() => {
                       const pct = portfolioStats.total > 0 ? Math.round((portfolioStats.delayed / portfolioStats.total) * 1000) / 10 : 0;
                       return (
@@ -758,17 +756,17 @@ export default function ControlBoardDashboard() {
                           <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
                             <svg className="w-full h-full" viewBox="0 0 100 100">
                               <circle cx="50" cy="50" r="42" className="stroke-white/10" strokeWidth="6" fill="transparent" />
-                              <circle cx="50" cy="50" r="42" className="stroke-[#ff5a5f] progress-ring-circle" strokeWidth="6" fill="transparent"
+                              <circle cx="50" cy="50" r="42" className="stroke-[#e0685f] progress-ring-circle" strokeWidth="6" fill="transparent"
                                 strokeDasharray="263.89"
                                 strokeDashoffset={263.89 - (263.89 * pct) / 100}
                                 strokeLinecap="round" />
                             </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white font-mono">{pct}%</span>
+                            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-[#f3eee3] font-mono">{pct}%</span>
                           </div>
                           <div className="meta">
-                            <div className="lab text-[10px] tracking-[.16em] uppercase text-[#7e95ab]">Delayed</div>
-                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#ff5a5f] font-serif-lux">
-                              {portfolioStats.delayed} <small className="text-[12px] text-[#aebfd1] font-semibold font-sans">/ {portfolioStats.total}</small>
+                            <div className="lab text-[10px] tracking-[.16em] uppercase text-[#8597a9]">Delayed</div>
+                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#e0685f] font-serif-lux">
+                              {portfolioStats.delayed} <small className="text-[12px] text-[#c4ceda] font-semibold font-sans">/ {portfolioStats.total}</small>
                             </div>
                           </div>
                         </>
@@ -776,26 +774,8 @@ export default function ControlBoardDashboard() {
                     })()}
                   </div>
 
-                  <div className="kpi">
-                    <div className="lab">Total Scope</div>
-                    <div className="val text-white font-serif-lux">{portfolioStats.total}</div>
-                    <div className="w-full h-5 mt-1 overflow-hidden opacity-50">
-                      <svg className="w-full h-full" viewBox="0 0 100 30" preserveAspectRatio="none">
-                        <defs>
-                          <linearGradient id="glow-teal" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#34c6a6" stopOpacity="0.3" />
-                            <stop offset="100%" stopColor="#34c6a6" stopOpacity="0" />
-                          </linearGradient>
-                        </defs>
-                        <path d="M0,25 T20,24 T40,24 T60,25 T80,24 T100,24" fill="none" stroke="#34c6a6" strokeWidth="1.5" />
-                        <path d="M0,25 T20,24 T40,24 T60,25 T80,24 T100,24 L100,30 L0,30 Z" fill="url(#glow-teal)" />
-                      </svg>
-                    </div>
-                    <div className="foot mt-1">All active programme stages</div>
-                  </div>
-
                   {/* Not Started pie chart */}
-                  <div className="donut glass-panel">
+                  <div className="donut">
                     {(() => {
                       const pct = portfolioStats.total > 0 ? Math.round((portfolioStats.notStarted / portfolioStats.total) * 1000) / 10 : 0;
                       return (
@@ -803,17 +783,17 @@ export default function ControlBoardDashboard() {
                           <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
                             <svg className="w-full h-full" viewBox="0 0 100 100">
                               <circle cx="50" cy="50" r="42" className="stroke-white/10" strokeWidth="6" fill="transparent" />
-                              <circle cx="50" cy="50" r="42" className="stroke-[#7e95ab] progress-ring-circle" strokeWidth="6" fill="transparent"
+                              <circle cx="50" cy="50" r="42" className="stroke-[#8597a9] progress-ring-circle" strokeWidth="6" fill="transparent"
                                 strokeDasharray="263.89"
                                 strokeDashoffset={263.89 - (263.89 * pct) / 100}
                                 strokeLinecap="round" />
                             </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-white font-mono">{pct}%</span>
+                            <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold text-[#f3eee3] font-mono">{pct}%</span>
                           </div>
                           <div className="meta">
-                            <div className="lab text-[10px] tracking-[.16em] uppercase text-[#7e95ab]">Not Started</div>
-                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#7e95ab] font-serif-lux">
-                              {portfolioStats.notStarted} <small className="text-[12px] text-[#aebfd1] font-semibold font-sans">/ {portfolioStats.total}</small>
+                            <div className="lab text-[10px] tracking-[.16em] uppercase text-[#8597a9]">Not Started</div>
+                            <div className="big text-[22px] font-bold mt-[0.3vh] text-[#8597a9] font-serif-lux">
+                              {portfolioStats.notStarted} <small className="text-[12px] text-[#c4ceda] font-semibold font-sans">/ {portfolioStats.total}</small>
                             </div>
                           </div>
                         </>
@@ -827,11 +807,11 @@ export default function ControlBoardDashboard() {
                   
                   {/* Left Side: Summary table of Phase progress */}
                   <div className="flex-grow flex flex-col sumtable">
-                    <div className="bh font-bold text-[14px] text-white flex items-center justify-between">
+                    <div className="bh font-bold text-[14px] text-[#f3eee3] flex items-center justify-between">
                       <span>Programme Breakdown by Project</span>
-                      <span className="text-[11px] text-[#7e95ab] font-mono font-normal">Active items tracked</span>
+                      <span className="text-[11px] text-[#8597a9] font-mono font-normal">Active items tracked</span>
                     </div>
-                    <div className="tablewrap flex-grow overflow-x-auto">
+                    <div className="tablewrap flex-grow overflow-x-auto overflow-y-auto scrollable-y" data-slide-col={0}>
                       <table className="min-w-full">
                         <thead>
                           <tr>
@@ -849,11 +829,11 @@ export default function ControlBoardDashboard() {
                         </thead>
                         <tbody>
                           {phaseStats.map((phase, idx) => (
-                            <tr key={idx} className="hover:bg-[#16314f]/30 transition-colors">
+                            <tr key={idx} className="hover:bg-[#142740]/30 transition-colors">
                               <td style={{ textAlign: 'left' }}>
                                 <div className="proj !justify-start text-left pl-2">
                                   <span className={`dot ${phase.healthColor === 'r' ? 'r' : phase.healthColor === 'a' ? 'a' : 'g'}`}></span>
-                                  <span className="text-white font-semibold">{phase.name}</span>
+                                  <span className="text-[#f3eee3] font-semibold">{phase.name}</span>
                                 </div>
                               </td>
                               <td>
@@ -861,23 +841,23 @@ export default function ControlBoardDashboard() {
                                   <div className="bar flex-grow max-w-[150px]">
                                     <i style={{ width: `${phase.completionPercent}%` }}></i>
                                   </div>
-                                  <span className="text-[11px] font-mono text-[#aebfd1]">{phase.completionPercent}%</span>
+                                  <span className="text-[11px] font-mono text-[#c4ceda]">{phase.completionPercent}%</span>
                                 </div>
                               </td>
                               <td className="num font-mono text-center">{phase.total}</td>
-                              <td className="num font-mono text-center text-[#46c08a]">{phase.completed}</td>
-                              <td className="num font-mono text-center text-[#f1a73a]">{phase.inProgress}</td>
-                              <td className="num font-mono text-center text-[#7e95ab]">{phase.notStarted}</td>
-                              <td className="num font-mono text-center text-[#ff5a5f]">{phase.delayed}</td>
-                              <td className="num font-mono text-center text-[#aebfd1]">{phase.baselineEnd}</td>
-                              <td className="num font-mono text-center text-[#aebfd1]">{phase.forecastEnd}</td>
+                              <td className="num font-mono text-center text-[#7fb893]">{phase.completed}</td>
+                              <td className="num font-mono text-center text-[#d9a64e]">{phase.inProgress}</td>
+                              <td className="num font-mono text-center text-[#8597a9]">{phase.notStarted}</td>
+                              <td className="num font-mono text-center text-[#e0685f]">{phase.delayed}</td>
+                              <td className="num font-mono text-center text-[#c4ceda]">{phase.baselineEnd}</td>
+                              <td className="num font-mono text-center text-[#c4ceda]">{phase.forecastEnd}</td>
                               <td className="num var text-center font-mono">
                                 {phase.projectVarianceDays > 0 ? (
-                                  <span className="late text-[#ff5a5f] font-semibold">+{phase.projectVarianceDays}d</span>
+                                  <span className="late text-[#e0685f] font-semibold">+{phase.projectVarianceDays}d</span>
                                 ) : phase.projectVarianceDays < 0 ? (
-                                  <span className="early text-[#46c08a] font-semibold">{phase.projectVarianceDays}d</span>
+                                  <span className="early text-[#7fb893] font-semibold">{phase.projectVarianceDays}d</span>
                                 ) : (
-                                  <span className="early text-[#46c08a] font-semibold">On Time</span>
+                                  <span className="early text-[#7fb893] font-semibold">On Time</span>
                                 )}
                               </td>
                             </tr>
@@ -926,18 +906,17 @@ export default function ControlBoardDashboard() {
                 return (
                   <div key={pIdx} className={`slide ${slideIndex === sIdx ? 'on' : ''}`}>
                     <div className="slide-head flex items-end gap-[1.2vw] mb-[1.4vh] flex-none">
-                      <span className="tag text-[13px] tracking-[.26em] text-[#34c6a6] font-semibold uppercase">Hassan Allam Properties</span>
-                      <h1 className="text-[26px] md:text-[34px] font-bold tracking-tight text-white leading-none">{phase.name}</h1>
-                      <span className="pagebadge text-[12px] font-bold text-[#34c6a6] bg-[#34c6a6]/12 border border-[#34c6a6]/38 px-[0.8vw] py-[0.3vh] rounded-full self-center">Project Control Board</span>
+                      <span className="tag text-[13px] tracking-[.26em] text-[#cbb079] font-semibold uppercase">Hassan Allam Properties</span>
+                      <h1 className="text-[26px] md:text-[34px] font-bold tracking-tight text-[#f3eee3] leading-none">{phase.name}</h1>
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-grow overflow-hidden min-h-[30vh]">
 
                       {/* Column 1: Scope Progress List */}
                       <div className="flex flex-col sumtable p-4 h-full">
-                        <div className="bh font-bold text-[15px] text-white flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
+                        <div className="bh font-bold text-[15px] text-[#f3eee3] flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
                           <span>Scope Progress Breakdown</span>
-                          <span className="text-[11px] text-[#7e95ab] uppercase font-bold tracking-widest font-sans">Domain Health</span>
+                          <span className="text-[11px] text-[#8597a9] uppercase font-bold tracking-widest font-sans">Domain Health</span>
                         </div>
 
                         {/* Overall health card block */}
@@ -949,7 +928,7 @@ export default function ControlBoardDashboard() {
                                 cx="50"
                                 cy="50"
                                 r="42"
-                                className="stroke-[#34c6a6] progress-ring-circle"
+                                className="stroke-[#cbb079] progress-ring-circle"
                                 strokeWidth="6"
                                 fill="transparent"
                                 strokeDasharray="263.89"
@@ -957,13 +936,13 @@ export default function ControlBoardDashboard() {
                                 strokeLinecap="round"
                               />
                             </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-white font-mono">{phase.completionPercent}%</span>
+                            <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-[#f3eee3] font-mono">{phase.completionPercent}%</span>
                           </div>
                           <div className="min-w-0">
-                            <div className="text-[17px] font-bold text-white font-serif-lux">{phase.completed} / {phase.total} Complete</div>
-                            <div className="text-[11px] text-[#7e95ab] mt-0.5">
+                            <div className="text-[17px] font-bold text-[#f3eee3] font-serif-lux">{phase.completed} / {phase.total} Complete</div>
+                            <div className="text-[11px] text-[#8597a9] mt-0.5">
                               {phase.projectVarianceDays !== 0 ? (
-                                <span>Project variance: <b className={phase.projectVarianceDays > 0 ? 'text-[#ff5a5f]' : 'text-[#46c08a]'}>{phase.projectVarianceDays > 0 ? '+' : ''}{phase.projectVarianceDays}d</b></span>
+                                <span>Project variance: <b className={phase.projectVarianceDays > 0 ? 'text-[#e0685f]' : 'text-[#7fb893]'}>{phase.projectVarianceDays > 0 ? '+' : ''}{phase.projectVarianceDays}d</b></span>
                               ) : (
                                 <span>Project on schedule</span>
                               )}
@@ -979,27 +958,27 @@ export default function ControlBoardDashboard() {
                           {scopesList.map((scope, sIdx) => (
                             <div key={sIdx} className="space-y-1.5">
                               <div className="flex justify-between items-center text-[12px]">
-                                <span className="text-white font-semibold">{scope.name}</span>
-                                <span className="text-[#aebfd1] font-mono">{Math.round(scope.percent)}% <small className="text-[#7e95ab]">({scope.completed}/{scope.total})</small></span>
+                                <span className="text-[#f3eee3] font-semibold">{scope.name}</span>
+                                <span className="text-[#c4ceda] font-mono">{Math.round(scope.percent)}% <small className="text-[#8597a9]">({scope.completed}/{scope.total})</small></span>
                               </div>
-                              <div className="w-full h-2 rounded-full bg-[#0b1d2e] overflow-hidden flex border border-white/5 relative">
+                              <div className="w-full h-2 rounded-full bg-[#0a1626] overflow-hidden flex border border-white/5 relative">
                                 <div
                                   style={{ width: `${scope.percent}%` }}
-                                  className="h-full bg-gradient-to-r from-[#1f7a5e] to-[#34c6a6] relative"
+                                  className="h-full bg-gradient-to-r from-[#8a7647] to-[#cbb079] relative"
                                 >
                                   <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 w-full h-full animate-[pulse_2s_infinite]" />
                                 </div>
                               </div>
-                              <div className="flex justify-between items-center text-[10px] text-[#7e95ab] font-mono mt-0.5">
-                                <span>Baseline: <b className="text-[#aebfd1] font-normal">{scope.baselineEnd}</b></span>
-                                <span>Forecast: <b className="text-[#aebfd1] font-normal">{scope.forecastEnd}</b></span>
+                              <div className="flex justify-between items-center text-[10px] text-[#8597a9] font-mono mt-0.5">
+                                <span>Baseline: <b className="text-[#c4ceda] font-normal">{scope.baselineEnd}</b></span>
+                                <span>Forecast: <b className="text-[#c4ceda] font-normal">{scope.forecastEnd}</b></span>
                               </div>
                               {(() => {
                                 const activeTask = phase.tasks.find(t => t.scope === scope.name && t.status === 'In Progress');
                                 if (!activeTask) return null;
                                 return (
-                                  <div className="text-[11px] text-[#7e95ab] mt-1 truncate pl-1 border-l-2 border-[#f1a73a]/60">
-                                    Active: <span className="text-[#f1a73a] font-medium" title={activeTask.stage}>{activeTask.stage}</span>
+                                  <div className="text-[11px] text-[#8597a9] mt-1 truncate pl-1 border-l-2 border-[#d9a64e]/60">
+                                    Active: <span className="text-[#d9a64e] font-medium" title={activeTask.stage}>{activeTask.stage}</span>
                                   </div>
                                 );
                               })()}
@@ -1010,9 +989,9 @@ export default function ControlBoardDashboard() {
 
                       {/* Column 2: Critical Upcoming Milestones */}
                       <div className="flex flex-col sumtable p-4 h-full">
-                        <div className="bh font-bold text-[15px] text-white flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
+                        <div className="bh font-bold text-[15px] text-[#f3eee3] flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
                           <span>Critical Upcoming Milestones</span>
-                          <span className="text-[11px] text-[#7e95ab] uppercase font-bold tracking-widest font-sans">Next Steps</span>
+                          <span className="text-[11px] text-[#8597a9] uppercase font-bold tracking-widest font-sans">Next Steps</span>
                         </div>
 
                         <div
@@ -1023,17 +1002,17 @@ export default function ControlBoardDashboard() {
                             const remainingDays = t.durationActualWeeks !== null ? t.durationActualWeeks : getRemainingDays(t.fFinish);
                             return (
                               <div key={idx} className="bg-white/5 border border-white/5 hover:border-white/10 transition-colors rounded-xl p-3 flex items-start gap-3">
-                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#34c6a6] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[11px] shrink-0 mt-0.5">
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#cbb079] to-[#0d1c30] border border-white/10 flex items-center justify-center font-bold text-[#f3eee3] text-[11px] shrink-0 mt-0.5">
                                   {t.owner ? t.owner.split('/').map(w => w.trim().charAt(0)).join('') : '—'}
                                 </div>
                                 <div className="min-w-0 flex-grow text-left">
                                   <div className="flex items-start justify-between gap-2">
-                                    <span className="text-[11px] font-bold text-[#7e95ab] uppercase tracking-wider block">{t.scope}</span>
+                                    <span className="text-[11px] font-bold text-[#8597a9] uppercase tracking-wider block">{t.scope}</span>
                                     <span className={`text-[11px] font-bold px-1.5 py-0.5 border rounded-md shrink-0 leading-none ${
-                                      remainingDays === null ? 'border-white/10 bg-white/5 text-[#7e95ab]' :
-                                      remainingDays < 0 ? 'border-[#ff5a5f]/30 bg-[#ff5a5f]/10 text-[#ff5a5f]' :
-                                      remainingDays === 0 ? 'border-[#f1a73a]/30 bg-[#f1a73a]/10 text-[#f1a73a]' :
-                                      'border-[#34c6a6]/30 bg-[#34c6a6]/10 text-[#34c6a6]'
+                                      remainingDays === null ? 'border-white/10 bg-white/5 text-[#8597a9]' :
+                                      remainingDays < 0 ? 'border-[#e0685f]/30 bg-[#e0685f]/10 text-[#e0685f]' :
+                                      remainingDays === 0 ? 'border-[#d9a64e]/30 bg-[#d9a64e]/10 text-[#d9a64e]' :
+                                      'border-[#cbb079]/30 bg-[#cbb079]/10 text-[#cbb079]'
                                     }`}>
                                       {remainingDays === null ? 'No Date' :
                                        remainingDays < 0 ? `Overdue by ${Math.abs(remainingDays)}d` :
@@ -1041,21 +1020,21 @@ export default function ControlBoardDashboard() {
                                        `${remainingDays}d left`}
                                     </span>
                                   </div>
-                                  <span className="font-semibold text-white block text-[14px] truncate mt-0.5" title={t.stage}>{t.stage}</span>
-                                  <span className="text-[12px] font-mono text-[#aebfd1] block mt-0.5 flex items-center gap-1">
-                                    <Calendar size={13} className="text-[#34c6a6]" />
+                                  <span className="font-semibold text-[#f3eee3] block text-[14px] truncate mt-0.5" title={t.stage}>{t.stage}</span>
+                                  <span className="text-[12px] font-mono text-[#c4ceda] block mt-0.5 flex items-center gap-1">
+                                    <Calendar size={13} className="text-[#cbb079]" />
                                     Due: {t.fFinish || '—'}
                                   </span>
-                                  <span className="text-[11px] text-[#7e95ab] block mt-1">
-                                    Owner: <b className="text-[#aebfd1] font-semibold">{t.owner || '—'}</b> | Consultant: <b className="text-[#aebfd1] font-semibold">{t.consultant || '—'}</b>
+                                  <span className="text-[11px] text-[#8597a9] block mt-1">
+                                    Owner: <b className="text-[#c4ceda] font-semibold">{t.owner || '—'}</b> | Consultant: <b className="text-[#c4ceda] font-semibold">{t.consultant || '—'}</b>
                                   </span>
                                 </div>
                               </div>
                             );
                           })}
                           {upcomingMilestones.length === 0 && (
-                            <div className="flex flex-col items-center justify-center text-center py-20 text-[#7e95ab]">
-                              <CheckCircle2 size={32} className="text-[#46c08a] mb-3 opacity-60" />
+                            <div className="flex flex-col items-center justify-center text-center py-20 text-[#8597a9]">
+                              <CheckCircle2 size={32} className="text-[#7fb893] mb-3 opacity-60" />
                               <span className="text-sm">No pending milestones in this phase.</span>
                             </div>
                           )}
@@ -1064,9 +1043,9 @@ export default function ControlBoardDashboard() {
 
                       {/* Column 3: Blocker Alerts / Schedule Variance Log */}
                       <div className="flex flex-col sumtable p-4 h-full">
-                        <div className="bh font-bold text-[15px] text-white flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
+                        <div className="bh font-bold text-[15px] text-[#f3eee3] flex items-center justify-between pb-3 mb-3 border-b border-white/10 flex-none">
                           <span>Delayed Tasks</span>
-                          <span className="text-[11px] text-[#ff5a5f] uppercase font-bold tracking-widest font-sans flex items-center gap-1">
+                          <span className="text-[11px] text-[#e0685f] uppercase font-bold tracking-widest font-sans flex items-center gap-1">
                             <AlertTriangle size={12} className="animate-pulse" />
                             Variance
                           </span>
@@ -1079,34 +1058,34 @@ export default function ControlBoardDashboard() {
                           {delayedMilestones.map((t, idx) => {
                             const delay = getTaskVariance(t);
                             return (
-                              <div key={idx} className="bg-[#ff5a5f]/5 border border-[#ff5a5f]/15 hover:border-[#ff5a5f]/25 transition-colors rounded-xl p-3 flex items-start gap-3">
-                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#ff5a5f] to-[#0e2438] border border-white/10 flex items-center justify-center font-bold text-white text-[11px] shrink-0 mt-0.5">
+                              <div key={idx} className="bg-[#e0685f]/5 border border-[#e0685f]/15 hover:border-[#e0685f]/25 transition-colors rounded-xl p-3 flex items-start gap-3">
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#e0685f] to-[#0d1c30] border border-white/10 flex items-center justify-center font-bold text-[#f3eee3] text-[11px] shrink-0 mt-0.5">
                                   {t.owner ? t.owner.split('/').map(w => w.trim().charAt(0)).join('') : '—'}
                                 </div>
                                 <div className="min-w-0 flex-grow text-left">
                                   <div className="flex items-start justify-between gap-2">
-                                    <span className="text-[11px] font-bold text-[#ff5a5f] uppercase tracking-wider block">{t.scope}</span>
-                                    <span className="text-[11px] font-bold text-[#ff5a5f] px-1.5 py-0.5 border border-[#ff5a5f]/30 bg-[#ff5a5f]/10 rounded-md shrink-0 font-mono leading-none">
+                                    <span className="text-[11px] font-bold text-[#e0685f] uppercase tracking-wider block">{t.scope}</span>
+                                    <span className="text-[11px] font-bold text-[#e0685f] px-1.5 py-0.5 border border-[#e0685f]/30 bg-[#e0685f]/10 rounded-md shrink-0 font-mono leading-none">
                                       {delay > 0 ? `+${delay}d` : `${delay}d`} delay
                                     </span>
                                   </div>
-                                  <span className="font-semibold text-white block text-[14px] truncate mt-0.5" title={t.stage}>{t.stage}</span>
-                                  <span className="text-[12px] font-mono text-[#aebfd1] block mt-0.5 flex items-center gap-1.5">
-                                    <Calendar size={13} className="text-[#ff5a5f]" />
-                                    Planned: <b className="text-white font-normal">{t.bFinish || '—'}</b> → Forecast: <b className="text-white font-normal">{t.fFinish || '—'}</b>
+                                  <span className="font-semibold text-[#f3eee3] block text-[14px] truncate mt-0.5" title={t.stage}>{t.stage}</span>
+                                  <span className="text-[12px] font-mono text-[#c4ceda] block mt-0.5 flex items-center gap-1.5">
+                                    <Calendar size={13} className="text-[#e0685f]" />
+                                    Planned: <b className="text-[#f3eee3] font-normal">{t.bFinish || '—'}</b> → Forecast: <b className="text-[#f3eee3] font-normal">{t.fFinish || '—'}</b>
                                   </span>
-                                  <span className="text-[11px] text-[#7e95ab] block mt-1">
-                                    Owner: <b className="text-[#aebfd1] font-semibold">{t.owner || '—'}</b> | Consultant: <b className="text-[#aebfd1] font-semibold">{t.consultant || '—'}</b>
+                                  <span className="text-[11px] text-[#8597a9] block mt-1">
+                                    Owner: <b className="text-[#c4ceda] font-semibold">{t.owner || '—'}</b> | Consultant: <b className="text-[#c4ceda] font-semibold">{t.consultant || '—'}</b>
                                   </span>
                                 </div>
                               </div>
                             );
                           })}
                           {delayedMilestones.length === 0 && (
-                            <div className="flex flex-col items-center justify-center text-center py-20 text-[#7e95ab] h-full">
-                              <CheckCircle2 size={32} className="text-[#46c08a] mb-3 opacity-60 animate-bounce" />
-                              <span className="text-sm text-[#46c08a] font-bold">On Schedule</span>
-                              <span className="text-[11px] text-[#7e95ab] mt-1">All milestones in this phase are tracking to target.</span>
+                            <div className="flex flex-col items-center justify-center text-center py-20 text-[#8597a9] h-full">
+                              <CheckCircle2 size={32} className="text-[#7fb893] mb-3 opacity-60 animate-bounce" />
+                              <span className="text-sm text-[#7fb893] font-bold">On Schedule</span>
+                              <span className="text-[11px] text-[#8597a9] mt-1">All milestones in this phase are tracking to target.</span>
                             </div>
                           )}
                         </div>
@@ -1126,68 +1105,68 @@ export default function ControlBoardDashboard() {
           <div className="absolute inset-0 flex flex-col p-6 space-y-4 overflow-hidden h-full">
             
             {/* SEARCH / FILTERS BAR */}
-            <div className="flex-none p-4 rounded-xl bg-[#13293e]/40 border border-white/5 backdrop-blur-md flex flex-wrap items-center justify-between gap-4">
+            <div className="flex-none p-4 rounded bg-gradient-to-b from-[#101f33] to-[#142740] border border-[#d5c4a1]/[.14] flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="relative min-w-[240px]">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#7e95ab]" />
-                  <input 
-                    type="text" 
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8597a9]" />
+                  <input
+                    type="text"
                     placeholder="Search stage owner, consultant..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 pr-4 py-1.5 w-full text-xs rounded-lg border border-white/10 bg-[#0b1d2e] text-[#eaf1f8] focus:outline-none focus:border-[#34c6a6] transition-colors"
+                    className="pl-9 pr-4 py-1.5 w-full text-xs rounded border border-white/10 bg-[#0a1626] text-[#f3eee3] focus:outline-none focus:border-[#cbb079] transition-colors"
                   />
                 </div>
-                
+
                 {/* Project Filter */}
-                <div className="flex items-center gap-1.5 border border-white/10 bg-[#0b1d2e] rounded-lg px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest font-sans">
-                  <Filter size={11} className="text-[#34c6a6]" />
-                  <select 
+                <div className="flex items-center gap-1.5 border border-white/10 bg-[#0a1626] rounded px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest font-sans">
+                  <Filter size={11} className="text-[#cbb079]" />
+                  <select
                     value={selectedPhase}
                     onChange={(e) => handlePhaseFilterChange(e.target.value)}
-                    className="bg-transparent focus:outline-none cursor-pointer font-bold text-[#aebfd1] text-[10px]"
+                    className="bg-transparent focus:outline-none cursor-pointer font-bold text-[#c4ceda] text-[10px]"
                   >
-                    <option value="All" className="text-slate-800 bg-white">All Projects</option>
+                    <option value="All" className="text-[#f3eee3] bg-[#101f33]">All Projects</option>
                     {projectsList.map((p, idx) => (
-                      <option key={idx} value={p} className="text-slate-800 bg-white">{p}</option>
+                      <option key={idx} value={p} className="text-[#f3eee3] bg-[#101f33]">{p}</option>
                     ))}
                   </select>
                 </div>
 
                 {/* Scope Filter */}
-                <div className="flex items-center gap-1.5 border border-white/10 bg-[#0b1d2e] rounded-lg px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest font-sans">
-                  <Filter size={11} className="text-[#34c6a6]" />
-                  <select 
+                <div className="flex items-center gap-1.5 border border-white/10 bg-[#0a1626] rounded px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest font-sans">
+                  <Filter size={11} className="text-[#cbb079]" />
+                  <select
                     value={selectedScope}
                     onChange={(e) => setSelectedScope(e.target.value)}
-                    className="bg-transparent focus:outline-none cursor-pointer font-bold text-[#aebfd1] text-[10px]"
+                    className="bg-transparent focus:outline-none cursor-pointer font-bold text-[#c4ceda] text-[10px]"
                   >
-                    <option value="All" className="text-slate-800 bg-white">All Parents</option>
+                    <option value="All" className="text-[#f3eee3] bg-[#101f33]">All Parents</option>
                     {allScopes.map((s, idx) => (
-                      <option key={idx} value={s} className="text-slate-800 bg-white">{s}</option>
+                      <option key={idx} value={s} className="text-[#f3eee3] bg-[#101f33]">{s}</option>
                     ))}
                   </select>
                 </div>
 
                 {/* Status Filter */}
-                <div className="flex items-center gap-1.5 border border-white/10 bg-[#0b1d2e] rounded-lg px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest font-sans">
-                  <Filter size={11} className="text-[#34c6a6]" />
-                  <select 
+                <div className="flex items-center gap-1.5 border border-white/10 bg-[#0a1626] rounded px-3 py-1.5 text-[10px] uppercase font-bold tracking-widest font-sans">
+                  <Filter size={11} className="text-[#cbb079]" />
+                  <select
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
-                    className="bg-transparent focus:outline-none cursor-pointer font-bold text-[#aebfd1] text-[10px]"
+                    className="bg-transparent focus:outline-none cursor-pointer font-bold text-[#c4ceda] text-[10px]"
                   >
-                    <option value="All" className="text-slate-800 bg-white">All Statuses</option>
-                    <option value="In Progress" className="text-slate-800 bg-white">In Progress</option>
-                    <option value="Not Started" className="text-slate-800 bg-white">Not Started</option>
-                    <option value="Delayed" className="text-slate-800 bg-white">Delayed Only</option>
+                    <option value="All" className="text-[#f3eee3] bg-[#101f33]">All Statuses</option>
+                    <option value="In Progress" className="text-[#f3eee3] bg-[#101f33]">In Progress</option>
+                    <option value="Not Started" className="text-[#f3eee3] bg-[#101f33]">Not Started</option>
+                    <option value="Delayed" className="text-[#f3eee3] bg-[#101f33]">Delayed Only</option>
                   </select>
                 </div>
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="text-[11px] text-[#7e95ab] hidden sm:block">
-                  Filtered: <b className="text-white">{filteredTasks.length}</b> / {tasks.length} tasks
+                <div className="text-[11px] text-[#8597a9] hidden sm:block">
+                  Filtered: <b className="text-[#f3eee3]">{filteredTasks.length}</b> / {tasks.length} tasks
                 </div>
                 
               </div>
@@ -1196,13 +1175,13 @@ export default function ControlBoardDashboard() {
             {/* MAIN WORKSPACE GRID */}
             <div className="flex-grow flex flex-col overflow-hidden min-h-0 h-full">
                 {/* Task table — full width */}
-                <div className="flex flex-col bg-[#13293e] border border-white/10 rounded-2xl shadow-xl overflow-hidden h-full min-h-0">
+                <div className="flex flex-col bg-gradient-to-b from-[#101f33] to-[rgba(16,31,51,0.6)] border border-[#d5c4a1]/[.14] rounded overflow-hidden h-full min-h-0">
                   <div className="p-4 border-b border-white/10 flex items-center justify-between flex-none">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-2">
-                      <ListTodo size={14} className="text-[#34c6a6]" />
+                    <h3 className="font-serif-lux text-[15px] font-semibold tracking-wide text-[#f3eee3] flex items-center gap-2">
+                      <ListTodo size={14} className="text-[#cbb079]" />
                       Interactive Work Streams
                     </h3>
-                    <span className="text-[10px] text-[#7e95ab]">Showing active & in-progress tasks only</span>
+                    <span className="text-[10px] text-[#8597a9]">Showing active & in-progress tasks only</span>
                   </div>
                   
                   <div className="tablewrap flex-grow overflow-y-auto min-h-0">
@@ -1230,11 +1209,11 @@ export default function ControlBoardDashboard() {
                             <tr 
                               key={idx} 
                               onClick={() => setSelectedTaskId(taskKey)}
-                              className={`hover:bg-[#16314f]/50 transition-colors cursor-pointer ${isSelected ? 'bg-[#16314f]' : ''} ${isDelayed ? 'od' : ''}`}
+                              className={`hover:bg-[#142740]/50 transition-colors cursor-pointer ${isSelected ? 'bg-[#142740]' : ''} ${isDelayed ? 'od' : ''}`}
                             >
-                              <td className="stage font-medium text-white">
+                              <td className="stage font-medium text-[#f3eee3]">
                                 {t.stage}
-                                <span className="ph block text-[9px] text-[#7e95ab] mt-0.5">{t.phase}</span>
+                                <span className="ph block text-[9px] text-[#8597a9] mt-0.5">{t.phase}</span>
                               </td>
                               <td className="scope">{t.scope}</td>
                               <td className="owner">{t.owner || '—'}</td>
@@ -1258,7 +1237,7 @@ export default function ControlBoardDashboard() {
                         })}
                         {filteredTasks.length === 0 && (
                           <tr>
-                            <td colSpan={9} className="text-center py-20 text-[#7e95ab]">
+                            <td colSpan={9} className="text-center py-20 text-[#8597a9]">
                               No matching milestones found. Adjust filters to search.
                             </td>
                           </tr>
@@ -1275,14 +1254,14 @@ export default function ControlBoardDashboard() {
       {/* ==========================================
           FOOTER (SLIDESHOW MANUAL AND AUTOMATIC CYCLE CONTROLS)
           ========================================== */}
-      <div className="footer flex-none h-[5.6vh] min-h-[42px] flex items-center gap-[1.2vw] px-[2.2vw] border-t border-white/10 bg-[#0e2438] relative z-40">
+      <div className="footer flex-none h-[5.6vh] min-h-[42px] flex items-center gap-[1.2vw] px-[2.2vw] border-t border-white/10 bg-[#0d1c30] relative z-40">
         
         {/* Navigation arrow / play-pause cycle buttons */}
         <div className="ctrl flex items-center gap-[0.5vw]">
           <button 
             id="prev" 
             onClick={handlePrev}
-            className="w-[3.2vh] h-[3.2vh] min-w-[26px] min-h-[26px] rounded-lg grid place-items-center text-[#aebfd1] bg-white/5 hover:bg-white/10 hover:text-[#eaf1f8] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            className="w-[3.2vh] h-[3.2vh] min-w-[26px] min-h-[26px] rounded-lg grid place-items-center text-[#c4ceda] bg-white/5 hover:bg-white/10 hover:text-[#f3eee3] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
             title="Previous (←)"
             aria-label="Previous"
           >
@@ -1292,7 +1271,7 @@ export default function ControlBoardDashboard() {
           <button 
             id="play" 
             onClick={handlePlayPause}
-            className="w-[3.2vh] h-[3.2vh] min-w-[26px] min-h-[26px] rounded-lg grid place-items-center text-[#aebfd1] bg-white/5 hover:bg-white/10 hover:text-[#eaf1f8] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            className="w-[3.2vh] h-[3.2vh] min-w-[26px] min-h-[26px] rounded-lg grid place-items-center text-[#c4ceda] bg-white/5 hover:bg-white/10 hover:text-[#f3eee3] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
             title="Pause/Play (space)"
             aria-label="Pause or play"
           >
@@ -1302,7 +1281,7 @@ export default function ControlBoardDashboard() {
           <button 
             id="next" 
             onClick={handleNext}
-            className="w-[3.2vh] h-[3.2vh] min-w-[26px] min-h-[26px] rounded-lg grid place-items-center text-[#aebfd1] bg-white/5 hover:bg-white/10 hover:text-[#eaf1f8] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+            className="w-[3.2vh] h-[3.2vh] min-w-[26px] min-h-[26px] rounded-lg grid place-items-center text-[#c4ceda] bg-white/5 hover:bg-white/10 hover:text-[#f3eee3] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
             title="Next (→)"
             aria-label="Next"
           >
@@ -1311,18 +1290,19 @@ export default function ControlBoardDashboard() {
         </div>
 
         {/* Dynamic slide name status display */}
-        <div className="pgname text-[11px] text-[#7e95ab] tracking-[0.04em] min-w-[12vw] ml-3">
-          Slide Name: <b className="text-[#aebfd1] font-semibold">
+        <div className="pgname text-[11px] text-[#8597a9] tracking-[0.04em] min-w-[12vw] ml-3">
+          Slide Name: <b className="text-[#c4ceda] font-semibold">
             {slideIndex === 0 ? "Portfolio Overview" : projectsList[slideIndex - 1]}
           </b>
         </div>
         
         {/* Progress Fill bar indicating rotation time remaining */}
         <div className="cycle flex-grow h-[4px] rounded-full bg-white/10 overflow-hidden relative">
-          <i 
-            id="cyclebar" 
-            className="block h-full bg-[#34c6a6] rounded-full transition-all ease-linear duration-100" 
-            style={{ width: `${progress}%` }}
+          <i
+            id="cyclebar"
+            ref={progressBarRef}
+            className="block h-full bg-[#cbb079] rounded-full"
+            style={{ width: '0%' }}
           ></i>
         </div>
         
@@ -1334,7 +1314,7 @@ export default function ControlBoardDashboard() {
               onClick={() => handleDotClick(idx)}
               className={`w-[0.85vw] h-[0.85vw] min-w-[9px] min-h-[9px] rounded-full transition-all duration-300 cursor-pointer ${
                 slideIndex === idx 
-                  ? 'bg-[#34c6a6] scale-125' 
+                  ? 'bg-[#cbb079] scale-125' 
                   : 'bg-white/20 hover:bg-white/50 disabled:pointer-events-none'
               }`}
               title={`Slide ${idx + 1}`}
@@ -1343,10 +1323,6 @@ export default function ControlBoardDashboard() {
           ))}
         </div>
 
-        {/* Footnote versioning */}
-        <div className="text-[10px] text-[#7e95ab] border-l border-white/10 pl-6 font-mono font-bold tracking-wider hidden sm:block">
-          PORTFOLIO CONTROL V2.0
-        </div>
       </div>
       
     </div>
