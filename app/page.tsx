@@ -25,6 +25,7 @@ import { createClient } from '../utils/supabase/client';
 interface TaskData {
   project: string;
   phase: string;
+  phasePriority: number | null;
   scope: string;
   stage: string;
   owner: string | null;
@@ -80,7 +81,7 @@ const isTaskDelayed = (t: TaskData): boolean => {
 
 // Helper to compute task schedule variance in days (now using days to finish column)
 const getTaskVariance = (t: TaskData): number => {
-  if (t.durationActualWeeks !== null) return t.durationActualWeeks;
+  if (t.durationActualWeeks !== null) return Math.ceil(t.durationActualWeeks);
   return 0;
 };
 
@@ -174,6 +175,7 @@ export default function ControlBoardDashboard() {
       const mapped: TaskData[] = allData.map(row => ({
         project: row.project,
         phase: row.phase,
+        phasePriority: row.phase_priority,
         scope: row.subproject || row.phase,
         stage: row.task_name,
         owner: row.owner,
@@ -388,7 +390,7 @@ export default function ControlBoardDashboard() {
     const inProgress = tasks.filter(t => t.status === 'In Progress').length;
     const notStarted = tasks.filter(t => t.status === 'Not Started').length;
     const delayed = tasks.filter(t => isTaskDelayed(t)).length;
-    const completionPercent = total > 0 ? Math.round((completed / total) * 1000) / 10 : 0;
+    const completionPercent = total > 0 ? Math.ceil((completed / total) * 100) : 0;
     const totalDelayDays = tasks.reduce((sum, t) => sum + (isTaskDelayed(t) ? getTaskVariance(t) : 0), 0);
 
     return {
@@ -405,13 +407,17 @@ export default function ControlBoardDashboard() {
   // Project level stats computed dynamically
   const phaseStats = useMemo(() => {
     return projectsList.map(projectName => {
-      const projectTasks = tasks.filter(t => t.project === projectName);
+      // Order by the Excel phase priority (column M) so phase 1's tasks list before phase 2's,
+      // etc. — priority order doesn't follow the sheet's row order, so this can't be skipped.
+      const projectTasks = tasks
+        .filter(t => t.project === projectName)
+        .sort((a, b) => (a.phasePriority ?? Infinity) - (b.phasePriority ?? Infinity));
       const total = projectTasks.length;
       const completed = projectTasks.filter(t => t.status === 'Complete').length;
       const inProgress = projectTasks.filter(t => t.status === 'In Progress').length;
       const notStarted = projectTasks.filter(t => t.status === 'Not Started').length;
       const delayed = projectTasks.filter(t => isTaskDelayed(t)).length;
-      const completionPercent = total > 0 ? Math.round((completed / total) * 1000) / 10 : 0;
+      const completionPercent = total > 0 ? Math.ceil((completed / total) * 100) : 0;
       const totalDelayDays = projectTasks.reduce((sum, t) => sum + (isTaskDelayed(t) ? Math.max(0, getTaskVariance(t)) : 0), 0);
 
       // Compute Project end dates
@@ -544,6 +550,10 @@ export default function ControlBoardDashboard() {
 
       return matchesSearch && matchesPhase && matchesScope && matchesStatus && t.status !== 'Complete';
     }).sort((a, b) => {
+      if (a.project !== b.project) return a.project.localeCompare(b.project);
+      const pa = a.phasePriority ?? Infinity;
+      const pb = b.phasePriority ?? Infinity;
+      if (pa !== pb) return pa - pb;
       const da = a.fFinish ? new Date(a.fFinish).getTime() : NaN;
       const db = b.fFinish ? new Date(b.fFinish).getTime() : NaN;
       if (Number.isNaN(da) && Number.isNaN(db)) return 0;
@@ -738,7 +748,7 @@ export default function ControlBoardDashboard() {
                   {/* In Progress pie chart */}
                   <div className="donut">
                     {(() => {
-                      const pct = portfolioStats.total > 0 ? Math.round((portfolioStats.inProgress / portfolioStats.total) * 1000) / 10 : 0;
+                      const pct = portfolioStats.total > 0 ? Math.ceil((portfolioStats.inProgress / portfolioStats.total) * 100) : 0;
                       return (
                         <>
                           <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
@@ -765,7 +775,7 @@ export default function ControlBoardDashboard() {
                   {/* Delayed pie chart */}
                   <div className="donut">
                     {(() => {
-                      const pct = portfolioStats.total > 0 ? Math.round((portfolioStats.delayed / portfolioStats.total) * 1000) / 10 : 0;
+                      const pct = portfolioStats.total > 0 ? Math.ceil((portfolioStats.delayed / portfolioStats.total) * 100) : 0;
                       return (
                         <>
                           <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
@@ -792,7 +802,7 @@ export default function ControlBoardDashboard() {
                   {/* Not Started pie chart */}
                   <div className="donut">
                     {(() => {
-                      const pct = portfolioStats.total > 0 ? Math.round((portfolioStats.notStarted / portfolioStats.total) * 1000) / 10 : 0;
+                      const pct = portfolioStats.total > 0 ? Math.ceil((portfolioStats.notStarted / portfolioStats.total) * 100) : 0;
                       return (
                         <>
                           <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
@@ -965,16 +975,18 @@ export default function ControlBoardDashboard() {
                           </div>
                         </div>
 
-                        {/* List of Scope progress bars */}
-                        <div
-                          className="space-y-4 flex-grow overflow-y-auto pr-1 scrollable-y"
-                          data-slide-col={sIdx}
-                        >
-                          {scopesList.map((scope, sIdx) => (
-                            <div key={sIdx} className="space-y-1.5">
+                        {/* List of Scope progress bars — Authorities/Permits scopes are frozen on top
+                            (like a frozen row in Google Sheets) while the rest of the phases scroll below. */}
+                        {(() => {
+                          const isAuthorityOrPermit = (name: string) => /authorit|permit/i.test(name);
+                          const pinnedScopes = scopesList.filter(s => isAuthorityOrPermit(s.name));
+                          const restScopes = scopesList.filter(s => !isAuthorityOrPermit(s.name));
+
+                          const renderScope = (scope: typeof scopesList[number], key: number) => (
+                            <div key={key} className="space-y-1.5">
                               <div className="flex justify-between items-center text-[12px]">
                                 <span className="text-[#f3eee3] font-semibold">{scope.name}</span>
-                                <span className="text-[#c4ceda] font-mono">{Math.round(scope.percent)}% <small className="text-[#8597a9]">({scope.completed}/{scope.total})</small></span>
+                                <span className="text-[#c4ceda] font-mono">{Math.ceil(scope.percent)}% <small className="text-[#8597a9]">({scope.completed}/{scope.total})</small></span>
                               </div>
                               <div className="w-full h-2 rounded-full bg-[#0a1626] overflow-hidden flex border border-white/5 relative">
                                 <div
@@ -998,8 +1010,49 @@ export default function ControlBoardDashboard() {
                                 );
                               })()}
                             </div>
-                          ))}
-                        </div>
+                          );
+
+                          const hasBoth = pinnedScopes.length > 0 && restScopes.length > 0;
+
+                          return (
+                            <>
+                              {pinnedScopes.length > 0 && (
+                                <div
+                                  className={`flex flex-col min-h-0 rounded-lg bg-[#cbb079]/[.04] border-2 border-[#cbb079]/40 ${
+                                    hasBoth ? 'flex-1 basis-1/2 mb-3' : 'flex-grow'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-1.5 px-2 pt-2 pb-2 text-[10px] font-bold uppercase tracking-widest text-[#cbb079] flex-none">
+                                    <ShieldAlert size={12} />
+                                    Authorities &amp; Permits
+                                    <span className="ml-auto text-[9px] font-mono text-[#8597a9] normal-case tracking-normal">pinned</span>
+                                  </div>
+                                  <div
+                                    className="space-y-4 overflow-y-auto pr-1 px-2 pb-2 flex-grow scrollable-y"
+                                    data-slide-col={sIdx}
+                                  >
+                                    {pinnedScopes.map(renderScope)}
+                                  </div>
+                                </div>
+                              )}
+                              {(restScopes.length > 0 || pinnedScopes.length === 0) && (
+                                <div className={`flex flex-col min-h-0 ${hasBoth ? 'flex-1 basis-1/2' : 'flex-grow'}`}>
+                                  {hasBoth && (
+                                    <div className="flex-none text-[10px] font-bold uppercase tracking-widest text-[#8597a9] mb-2 px-1">
+                                      Other Phases
+                                    </div>
+                                  )}
+                                  <div
+                                    className="space-y-4 flex-grow overflow-y-auto pr-1 scrollable-y"
+                                    data-slide-col={sIdx}
+                                  >
+                                    {restScopes.map(renderScope)}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
 
                       {/* Column 2: Critical Upcoming Milestones */}
@@ -1014,7 +1067,7 @@ export default function ControlBoardDashboard() {
                           data-slide-col={sIdx}
                         >
                           {upcomingMilestones.map((t, idx) => {
-                            const remainingDays = t.durationActualWeeks !== null ? t.durationActualWeeks : getRemainingDays(t.fFinish);
+                            const remainingDays = t.durationActualWeeks !== null ? Math.ceil(t.durationActualWeeks) : getRemainingDays(t.fFinish);
                             return (
                               <div key={idx} className="bg-white/5 border border-white/5 hover:border-white/10 transition-colors rounded-xl p-3 flex items-start gap-3">
                                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#cbb079] to-[#0d1c30] border border-white/10 flex items-center justify-center font-bold text-[#f3eee3] text-[11px] shrink-0 mt-0.5">

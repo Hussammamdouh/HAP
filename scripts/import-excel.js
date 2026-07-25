@@ -128,7 +128,7 @@ async function importExcel(filePath) {
     
     // Find the project-level variance from Row 1, Column 10 (Cell J1)
     const rawProjectVariance = getCellValue(worksheet.getRow(1).getCell(10));
-    const projectVariance = Math.round(parseExcelNumber(rawProjectVariance) || 0);
+    const projectVariance = Math.ceil(parseExcelNumber(rawProjectVariance) || 0);
     console.log(`  Project variance from Cell J1: ${projectVariance} days`);
     
     // Find the header row (the row where Col 1 equals "Phase")
@@ -151,12 +151,18 @@ async function importExcel(filePath) {
     const blankStatusTasks = [];
     
     // Loop through all data rows under the header row
+    // Tracks the priority (column M) of the most recent phase header row, so it can be
+    // stamped onto the task rows that follow — the same phase name (Trade) can recur as
+    // several separate blocks down a sheet, each with its own priority.
+    let currentPhasePriority = null;
     for (let r = headerRowNumber + 1; r <= worksheet.rowCount; r++) {
       const row = worksheet.getRow(r);
       const task = getCellValue(row.getCell(4));
-      
+
       // If Task is blank/empty, it is a phase header row, not a task row
       if (!task || String(task).trim() === '') {
+        const rowPriority = parseExcelNumber(getCellValue(row.getCell(13)));
+        if (rowPriority !== null) currentPhasePriority = rowPriority;
         continue;
       }
       
@@ -189,6 +195,7 @@ async function importExcel(filePath) {
         mainframe: String(tradeVal).trim(),
         cluster: String(tradeVal).trim(),
         phase: String(tradeVal).trim(),
+        phase_priority: currentPhasePriority,
         subproject: String(parentVal).trim(),
         task_name: String(task).trim(),
         owner: ownerVal ? String(ownerVal).trim() : null,
