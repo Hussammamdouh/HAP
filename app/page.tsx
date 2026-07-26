@@ -13,8 +13,7 @@ import {
   ArrowLeft, 
   CheckCircle2, 
   Database, 
-  Users, 
-  ShieldAlert, 
+  Users,
   ListTodo,
   TrendingUp,
   AlertTriangle,
@@ -928,6 +927,15 @@ export default function ControlBoardDashboard() {
                     return delayB - delayA;
                   });
 
+                // Split project tasks into Authorities/Permits vs the rest, for the two donut gauges
+                const isAuthorityOrPermit = (scopeName: string) => /authorit|permit/i.test(scopeName);
+                const authorityTasks = phase.tasks.filter(t => isAuthorityOrPermit(t.scope));
+                const restTasks = phase.tasks.filter(t => !isAuthorityOrPermit(t.scope));
+                const authorityCompleted = authorityTasks.filter(t => t.status === 'Complete').length;
+                const restCompleted = restTasks.filter(t => t.status === 'Complete').length;
+                const authorityPercent = authorityTasks.length > 0 ? Math.ceil((authorityCompleted / authorityTasks.length) * 100) : 0;
+                const restPercent = restTasks.length > 0 ? Math.ceil((restCompleted / restTasks.length) * 100) : 0;
+
                 return (
                   <div key={pIdx} className={`slide ${slideIndex === sIdx ? 'on' : ''}`}>
                     <div className="slide-head flex items-end gap-[1.2vw] mb-[1.4vh] flex-none">
@@ -944,7 +952,32 @@ export default function ControlBoardDashboard() {
                           <span className="text-[11px] text-[#8597a9] uppercase font-bold tracking-widest font-sans">Domain Health</span>
                         </div>
 
-                        {/* Overall health card block */}
+                        {/* Authorities & Permits health card */}
+                        <div className="flex items-center gap-4 bg-white/5 border border-white/5 rounded-2xl p-4 mb-3 flex-none">
+                          <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
+                            <svg className="w-full h-full" viewBox="0 0 100 100">
+                              <circle cx="50" cy="50" r="42" className="stroke-white/10" strokeWidth="6" fill="transparent" />
+                              <circle
+                                cx="50"
+                                cy="50"
+                                r="42"
+                                className="stroke-[#cbb079] progress-ring-circle"
+                                strokeWidth="6"
+                                fill="transparent"
+                                strokeDasharray="263.89"
+                                strokeDashoffset={263.89 - (263.89 * authorityPercent) / 100}
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                            <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-[#f3eee3] font-mono">{authorityPercent}%</span>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-[11px] text-[#cbb079] uppercase font-bold tracking-widest">Authorities &amp; Permits</div>
+                            <div className="text-[17px] font-bold text-[#f3eee3]">{authorityCompleted} / {authorityTasks.length} Complete</div>
+                          </div>
+                        </div>
+
+                        {/* Other Phases health card */}
                         <div className="flex items-center gap-4 bg-white/5 border border-white/5 rounded-2xl p-4 mb-4 flex-none">
                           <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
                             <svg className="w-full h-full" viewBox="0 0 100 100">
@@ -957,14 +990,15 @@ export default function ControlBoardDashboard() {
                                 strokeWidth="6"
                                 fill="transparent"
                                 strokeDasharray="263.89"
-                                strokeDashoffset={263.89 - (263.89 * phase.completionPercent) / 100}
+                                strokeDashoffset={263.89 - (263.89 * restPercent) / 100}
                                 strokeLinecap="round"
                               />
                             </svg>
-                            <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-[#f3eee3] font-mono">{phase.completionPercent}%</span>
+                            <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-[#f3eee3] font-mono">{restPercent}%</span>
                           </div>
                           <div className="min-w-0">
-                            <div className="text-[17px] font-bold text-[#f3eee3]">{phase.completed} / {phase.total} Complete</div>
+                            <div className="text-[11px] text-[#8597a9] uppercase font-bold tracking-widest">Other Phases</div>
+                            <div className="text-[17px] font-bold text-[#f3eee3]">{restCompleted} / {restTasks.length} Complete</div>
                             <div className="text-[11px] text-[#8597a9] mt-0.5">
                               {phase.projectVarianceDays !== 0 ? (
                                 <span>Project variance: <b className={phase.projectVarianceDays > 0 ? 'text-[#e0685f]' : 'text-[#7fb893]'}>{phase.projectVarianceDays > 0 ? '+' : ''}{phase.projectVarianceDays}d</b></span>
@@ -975,14 +1009,9 @@ export default function ControlBoardDashboard() {
                           </div>
                         </div>
 
-                        {/* List of Scope progress bars — Authorities/Permits scopes are frozen on top
-                            (like a frozen row in Google Sheets) while the rest of the phases scroll below. */}
-                        {(() => {
-                          const isAuthorityOrPermit = (name: string) => /authorit|permit/i.test(name);
-                          const pinnedScopes = scopesList.filter(s => isAuthorityOrPermit(s.name));
-                          const restScopes = scopesList.filter(s => !isAuthorityOrPermit(s.name));
-
-                          const renderScope = (scope: typeof scopesList[number], key: number) => (
+                        {/* List of Scope progress bars, ordered by phase priority (see phaseStats sort) */}
+                        <div className="space-y-4 flex-grow overflow-y-auto pr-1 scrollable-y" data-slide-col={sIdx}>
+                          {scopesList.map((scope, key) => (
                             <div key={key} className="space-y-1.5">
                               <div className="flex justify-between items-center text-[12px]">
                                 <span className="text-[#f3eee3] font-semibold">{scope.name}</span>
@@ -1010,49 +1039,8 @@ export default function ControlBoardDashboard() {
                                 );
                               })()}
                             </div>
-                          );
-
-                          const hasBoth = pinnedScopes.length > 0 && restScopes.length > 0;
-
-                          return (
-                            <>
-                              {pinnedScopes.length > 0 && (
-                                <div
-                                  className={`flex flex-col min-h-0 rounded-lg bg-[#cbb079]/[.04] border-2 border-[#cbb079]/40 ${
-                                    hasBoth ? 'flex-1 basis-1/2 mb-3' : 'flex-grow'
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-1.5 px-2 pt-2 pb-2 text-[10px] font-bold uppercase tracking-widest text-[#cbb079] flex-none">
-                                    <ShieldAlert size={12} />
-                                    Authorities &amp; Permits
-                                    <span className="ml-auto text-[9px] font-mono text-[#8597a9] normal-case tracking-normal">pinned</span>
-                                  </div>
-                                  <div
-                                    className="space-y-4 overflow-y-auto pr-1 px-2 pb-2 flex-grow scrollable-y"
-                                    data-slide-col={sIdx}
-                                  >
-                                    {pinnedScopes.map(renderScope)}
-                                  </div>
-                                </div>
-                              )}
-                              {(restScopes.length > 0 || pinnedScopes.length === 0) && (
-                                <div className={`flex flex-col min-h-0 ${hasBoth ? 'flex-1 basis-1/2' : 'flex-grow'}`}>
-                                  {hasBoth && (
-                                    <div className="flex-none text-[10px] font-bold uppercase tracking-widest text-[#8597a9] mb-2 px-1">
-                                      Other Phases
-                                    </div>
-                                  )}
-                                  <div
-                                    className="space-y-4 flex-grow overflow-y-auto pr-1 scrollable-y"
-                                    data-slide-col={sIdx}
-                                  >
-                                    {restScopes.map(renderScope)}
-                                  </div>
-                                </div>
-                              )}
-                            </>
-                          );
-                        })()}
+                          ))}
+                        </div>
                       </div>
 
                       {/* Column 2: Critical Upcoming Milestones */}
@@ -1067,7 +1055,7 @@ export default function ControlBoardDashboard() {
                           data-slide-col={sIdx}
                         >
                           {upcomingMilestones.map((t, idx) => {
-                            const remainingDays = t.durationActualWeeks !== null ? Math.ceil(t.durationActualWeeks) : getRemainingDays(t.fFinish);
+                            const remainingDays = getRemainingDays(t.fFinish);
                             return (
                               <div key={idx} className="bg-white/5 border border-white/5 hover:border-white/10 transition-colors rounded-xl p-3 flex items-start gap-3">
                                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#cbb079] to-[#0d1c30] border border-white/10 flex items-center justify-center font-bold text-[#f3eee3] text-[11px] shrink-0 mt-0.5">
