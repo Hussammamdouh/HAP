@@ -997,7 +997,7 @@ export default function ControlBoardDashboard() {
                             <span className="absolute inset-0 flex items-center justify-center text-[13px] font-bold text-[#f3eee3] font-mono">{restPercent}%</span>
                           </div>
                           <div className="min-w-0">
-                            <div className="text-[11px] text-[#8597a9] uppercase font-bold tracking-widest">Other Phases</div>
+                            <div className="text-[11px] text-[#8597a9] uppercase font-bold tracking-widest">Design Phases</div>
                             <div className="text-[17px] font-bold text-[#f3eee3]">{restCompleted} / {restTasks.length} Complete</div>
                             <div className="text-[11px] text-[#8597a9] mt-0.5">
                               {phase.projectVarianceDays !== 0 ? (
